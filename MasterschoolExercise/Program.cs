@@ -1,6 +1,5 @@
 using MasterschoolExercise.Services;
 using MasterschoolExercise.Repositories;
-using MasterschoolExercise.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,15 +8,28 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Register custom services
-builder.Services.AddSingleton<IFlowConfiguration, FlowConfiguration>();
+// Register repositories (mock DB tables)
+builder.Services.AddSingleton<IStepRepository, MockStepRepository>();
+builder.Services.AddSingleton<IFlowTaskRepository, MockFlowTaskRepository>();
+builder.Services.AddSingleton<IStepTaskRepository, MockStepTaskRepository>();
+builder.Services.AddSingleton<IUserTaskAssignmentRepository, MockUserTaskAssignmentRepository>();
 builder.Services.AddSingleton<IUserRepository, MockUserRepository>();
 builder.Services.AddSingleton<IUserProgressRepository, MockUserProgressRepository>();
+
+// Register services
+builder.Services.AddSingleton<IConditionEvaluator, ConditionEvaluator>();
+builder.Services.AddSingleton<IFlowDataSeeder, FlowDataSeeder>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IFlowService, FlowService>();
 builder.Services.AddScoped<IProgressService, ProgressService>();
+builder.Services.AddScoped<IStepManagementService, StepManagementService>();
+builder.Services.AddScoped<ITaskManagementService, TaskManagementService>();
 
 var app = builder.Build();
+
+// Seed initial data
+var seeder = app.Services.GetRequiredService<IFlowDataSeeder>();
+await seeder.SeedInitialDataAsync();
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
@@ -26,7 +38,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection(); // Disabled for HTTP-only debugging on port 8080
 app.UseAuthorization();
 app.MapControllers();
 

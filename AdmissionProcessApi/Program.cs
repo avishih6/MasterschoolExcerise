@@ -1,4 +1,5 @@
-using AdmissionProcessApi.Services;
+using AdmissionProcessBL.Services;
+using AdmissionProcessBL.Services.Interfaces;
 using AdmissionProcessDAL.Repositories.Interfaces;
 using AdmissionProcessDAL.Repositories.Mock;
 

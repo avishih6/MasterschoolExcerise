@@ -1,3 +1,5 @@
+using AdmissionProcessModels.Enums;
+
 namespace AdmissionProcessDAL.Models;
 
 public class FlowNode
@@ -20,16 +22,4 @@ public class FlowNode
 
         return VisibilityCondition.Evaluate(progress);
     }
-}
-
-public enum NodeRole
-{
-    Step = 1,
-    Task = 2
-}
-
-public class DerivedFactMapping
-{
-    public string SourceField { get; set; } = string.Empty;
-    public string TargetFactName { get; set; } = string.Empty;
 }

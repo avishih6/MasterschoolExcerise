@@ -10,11 +10,10 @@
 using System;
 using System.Reflection;
 
-[assembly: System.Reflection.AssemblyCompanyAttribute("Masterschool")]
+[assembly: System.Reflection.AssemblyCompanyAttribute("AdmissionProcessDAL")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
-[assembly: System.Reflection.AssemblyDescriptionAttribute("Data Access Layer for Admission Process - Mock implementations")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3a00ff7b834279fd535fafd4e6f3dda97a92107a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c48f8f7d4e9ed5a73285f6c3168e7fb4fe2742c2")]
 [assembly: System.Reflection.AssemblyProductAttribute("AdmissionProcessDAL")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AdmissionProcessDAL")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

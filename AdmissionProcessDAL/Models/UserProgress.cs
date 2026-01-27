@@ -1,3 +1,5 @@
+using AdmissionProcessModels.Enums;
+
 namespace AdmissionProcessDAL.Models;
 
 public class UserProgress
@@ -8,19 +10,6 @@ public class UserProgress
     
     public int? CurrentStepId { get; set; }
     public int? CurrentTaskId { get; set; }
-    public ProgressStatus CachedOverallStatus { get; set; } = ProgressStatus.NotStarted;
+    public UserStatus CachedOverallStatus { get; set; } = UserStatus.InProgress;
     public DateTime CacheUpdatedAt { get; set; }
-}
-
-public class NodeStatus
-{
-    public ProgressStatus Status { get; set; }
-    public DateTime UpdatedAt { get; set; }
-}
-
-public enum ProgressStatus
-{
-    NotStarted = 0,
-    Accepted = 1,
-    Rejected = 2
 }

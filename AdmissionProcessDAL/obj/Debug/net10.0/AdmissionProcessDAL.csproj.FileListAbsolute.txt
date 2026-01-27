@@ -12,3 +12,7 @@
 /Users/avishayhadar/Repos/AdmissionProcessDAL/obj/Debug/net10.0/AdmissionProcessDAL.pdb
 /Users/avishayhadar/Repos/AdmissionProcessDAL/obj/Debug/net10.0/ref/AdmissionProcessDAL.dll
 /Users/avishayhadar/Repos/AdmissionProcessDAL/bin/Debug/net10.0/Configuration/flow-config.json
+/Users/avishayhadar/Repos/AdmissionProcessDAL/bin/Debug/net10.0/Configuration/nodes.json
+/Users/avishayhadar/Repos/AdmissionProcessDAL/bin/Debug/net10.0/AdmissionProcessModels.dll
+/Users/avishayhadar/Repos/AdmissionProcessDAL/bin/Debug/net10.0/AdmissionProcessModels.pdb
+/Users/avishayhadar/Repos/AdmissionProcessDAL/obj/Debug/net10.0/Admissio.23B6A1C7.Up2Date

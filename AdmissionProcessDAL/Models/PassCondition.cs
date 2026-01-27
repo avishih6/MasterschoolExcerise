@@ -11,8 +11,8 @@ public class PassCondition
     {
         return Type switch
         {
-            "score_threshold" => EvaluateScoreThreshold(payload),
-            "decision_equals" => EvaluateDecisionEquals(payload),
+            ConditionTypes.ScoreThreshold => EvaluateScoreThreshold(payload),
+            ConditionTypes.DecisionEquals => EvaluateDecisionEquals(payload),
             _ => true
         };
     }
@@ -22,16 +22,11 @@ public class PassCondition
         if (!payload.TryGetValue(Field, out var value))
             return false;
 
-        if (value is int intValue)
-            return intValue > (Threshold ?? 0);
+        var numericValue = ConvertToDouble(value);
+        if (!numericValue.HasValue)
+            return false;
 
-        if (value is long longValue)
-            return longValue > (Threshold ?? 0);
-
-        if (value is double doubleValue)
-            return doubleValue > (Threshold ?? 0);
-
-        return false;
+        return numericValue.Value > (Threshold ?? 0);
     }
 
     private bool EvaluateDecisionEquals(Dictionary<string, object> payload)
@@ -40,5 +35,17 @@ public class PassCondition
             return false;
 
         return value?.ToString()?.Equals(ExpectedValue, StringComparison.OrdinalIgnoreCase) ?? false;
+    }
+
+    private static double? ConvertToDouble(object value)
+    {
+        return value switch
+        {
+            int i => i,
+            long l => l,
+            double d => d,
+            float f => f,
+            _ => null
+        };
     }
 }

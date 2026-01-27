@@ -11,7 +11,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AdmissionProcessDAL\AdmissionProcessDAL.csproj" />
+    <ProjectReference Include="..\AdmissionProcessBL\AdmissionProcessBL.csproj" />
+    <ProjectReference Include="..\AdmissionProcessModels\AdmissionProcessModels.csproj" />
   </ItemGroup>
 
 </Project>

@@ -12,8 +12,8 @@ public class VisibilityCondition
     {
         return Type switch
         {
-            "score_range" => EvaluateScoreRange(progress),
-            "derived_fact_equals" => EvaluateDerivedFactEquals(progress),
+            ConditionTypes.ScoreRange => EvaluateScoreRange(progress),
+            ConditionTypes.DerivedFactEquals => EvaluateDerivedFactEquals(progress),
             _ => true
         };
     }
@@ -23,16 +23,11 @@ public class VisibilityCondition
         if (!progress.DerivedFacts.TryGetValue(Field, out var value))
             return false;
 
-        if (value is int intValue)
-            return intValue >= (Min ?? int.MinValue) && intValue <= (Max ?? int.MaxValue);
+        var numericValue = ConvertToDouble(value);
+        if (!numericValue.HasValue)
+            return false;
 
-        if (value is long longValue)
-            return longValue >= (Min ?? int.MinValue) && longValue <= (Max ?? int.MaxValue);
-
-        if (value is double doubleValue)
-            return doubleValue >= (Min ?? int.MinValue) && doubleValue <= (Max ?? int.MaxValue);
-
-        return false;
+        return numericValue.Value >= (Min ?? int.MinValue) && numericValue.Value <= (Max ?? int.MaxValue);
     }
 
     private bool EvaluateDerivedFactEquals(UserProgress progress)
@@ -41,5 +36,17 @@ public class VisibilityCondition
             return false;
 
         return value?.ToString()?.Equals(ExpectedValue, StringComparison.OrdinalIgnoreCase) ?? false;
+    }
+
+    private static double? ConvertToDouble(object value)
+    {
+        return value switch
+        {
+            int i => i,
+            long l => l,
+            double d => d,
+            float f => f,
+            _ => null
+        };
     }
 }

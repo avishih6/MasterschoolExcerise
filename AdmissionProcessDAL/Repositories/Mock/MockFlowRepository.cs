@@ -1,229 +1,302 @@
-using System.Text.Json;
+using System.Collections.Concurrent;
+using AdmissionProcessDAL.Configuration.Models;
 using AdmissionProcessDAL.Models;
 using AdmissionProcessDAL.Repositories.Interfaces;
+using AdmissionProcessModels.Enums;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 namespace AdmissionProcessDAL.Repositories.Mock;
 
 public class MockFlowRepository : IFlowRepository
 {
-    private readonly Dictionary<int, FlowNode> _nodes = new();
-    private readonly Dictionary<int, List<FlowNode>> _childrenByParent = new();
+    private readonly ConcurrentDictionary<int, FlowNode> _nodesById = new();
+    private readonly ConcurrentDictionary<string, FlowNode> _nodesByName = new();
+    private readonly ConcurrentDictionary<int, List<FlowNode>> _childrenByParentId = new();
     private readonly ILogger<MockFlowRepository> _logger;
+    
+    private List<FlowNode>? _cachedRootSteps;
+    private readonly object _rootStepsLock = new();
 
     public MockFlowRepository(ILogger<MockFlowRepository> logger)
     {
         _logger = logger;
-        LoadFlowFromConfigurationAsync().GetAwaiter().GetResult();
+        InitializeAsync().GetAwaiter().GetResult();
     }
 
-    private async Task LoadFlowFromConfigurationAsync()
+    private async Task InitializeAsync()
     {
+        var nodesLoaded = await LoadNodesFromConfigurationAsync().ConfigureAwait(false);
+        
+        if (!nodesLoaded)
+        {
+            _logger.LogError("Failed to load nodes configuration, using fallback");
+            LoadFallbackNodes();
+        }
+
+        var flowLoaded = await LoadFlowFromConfigurationAsync().ConfigureAwait(false);
+        
+        if (!flowLoaded)
+        {
+            _logger.LogError("Failed to load flow configuration, using fallback");
+            LoadFallbackFlow();
+        }
+
+        BuildRootStepsCache();
+    }
+
+    private async Task<bool> LoadNodesFromConfigurationAsync()
+    {
+        var configPath = GetConfigurationPath("nodes.json");
+        
+        if (!File.Exists(configPath))
+        {
+            _logger.LogError($"Nodes configuration file not found at {configPath}");
+            return false;
+        }
+
         try
         {
-            var configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Configuration", "flow-config.json");
-            
-            if (!File.Exists(configPath))
-            {
-                _logger.LogWarning("Flow configuration file not found at {Path}, using fallback configuration", configPath);
-                SeedFallbackFlow();
-                return;
-            }
-
             var jsonContent = await File.ReadAllTextAsync(configPath).ConfigureAwait(false);
-            var options = new JsonSerializerOptions
+            var nodesConfig = JsonConvert.DeserializeObject<NodesConfiguration>(jsonContent);
+
+            if (nodesConfig?.Nodes == null || nodesConfig.Nodes.Count == 0)
             {
-                PropertyNameCaseInsensitive = true
-            };
-            
-            var flowConfig = JsonSerializer.Deserialize<FlowConfiguration>(jsonContent, options);
-            
-            if (flowConfig?.Steps == null || flowConfig.Steps.Count == 0)
-            {
-                _logger.LogWarning("Flow configuration is empty, using fallback configuration");
-                SeedFallbackFlow();
-                return;
+                _logger.LogError("Nodes configuration is empty");
+                return false;
             }
 
-            foreach (var stepConfig in flowConfig.Steps)
+            foreach (var nodeDef in nodesConfig.Nodes)
             {
-                var step = new FlowNode
-                {
-                    Id = stepConfig.Id,
-                    Name = stepConfig.Name,
-                    Role = NodeRole.Step,
-                    ParentId = null,
-                    Order = stepConfig.Order
-                };
-                _nodes[step.Id] = step;
-
-                if (stepConfig.Tasks != null)
-                {
-                    foreach (var taskConfig in stepConfig.Tasks)
-                    {
-                        var task = new FlowNode
-                        {
-                            Id = taskConfig.Id,
-                            Name = taskConfig.Name,
-                            Role = NodeRole.Task,
-                            ParentId = stepConfig.Id,
-                            Order = taskConfig.Order,
-                            VisibilityCondition = taskConfig.VisibilityCondition,
-                            PassCondition = taskConfig.PassCondition,
-                            PayloadIdentifiers = taskConfig.PayloadIdentifiers ?? new List<string>(),
-                            RequiresPreviousTaskFailedId = taskConfig.RequiresPreviousTaskFailedId,
-                            DerivedFactsToStore = taskConfig.DerivedFactsToStore
-                        };
-                        _nodes[task.Id] = task;
-                        AddChild(stepConfig.Id, task);
-                    }
-                }
+                var node = CreateNodeFromDefinition(nodeDef);
+                AddNodeToLookups(node);
             }
 
-            _logger.LogInformation("Successfully loaded {StepCount} steps from flow configuration", flowConfig.Steps.Count);
+            _logger.LogInformation($"Successfully loaded {nodesConfig.Nodes.Count} nodes from configuration");
+            return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to load flow configuration, using fallback");
-            SeedFallbackFlow();
+            _logger.LogError(ex, $"Error loading nodes configuration from {configPath}");
+            return false;
         }
     }
 
-    private void SeedFallbackFlow()
+    private async Task<bool> LoadFlowFromConfigurationAsync()
     {
-        var step1 = new FlowNode { Id = 1, Name = "Personal Details Form", Role = NodeRole.Step, ParentId = null, Order = 1 };
-        _nodes[1] = step1;
-        var task1 = new FlowNode { Id = 10, Name = "Complete personal details", Role = NodeRole.Task, ParentId = 1, Order = 1, PayloadIdentifiers = new List<string> { "first_name", "last_name", "email" } };
-        _nodes[10] = task1;
-        AddChild(1, task1);
-
-        var step2 = new FlowNode { Id = 2, Name = "IQ Test", Role = NodeRole.Step, ParentId = null, Order = 2 };
-        _nodes[2] = step2;
-        var task2 = new FlowNode 
-        { 
-            Id = 20, 
-            Name = "Take IQ test", 
-            Role = NodeRole.Task, 
-            ParentId = 2, 
-            Order = 1, 
-            PassCondition = new PassCondition { Type = "score_threshold", Field = "score", Threshold = 75 },
-            PayloadIdentifiers = new List<string> { "score", "test_id" },
-            DerivedFactsToStore = new List<DerivedFactMapping> { new() { SourceField = "score", TargetFactName = "iq_score" } }
-        };
-        _nodes[20] = task2;
-        AddChild(2, task2);
+        var configPath = GetConfigurationPath("flow-config.json");
         
-        var task2b = new FlowNode 
-        { 
-            Id = 21, 
-            Name = "Take second chance IQ test", 
-            Role = NodeRole.Task, 
-            ParentId = 2, 
-            Order = 2, 
-            VisibilityCondition = new VisibilityCondition { Type = "score_range", Field = "iq_score", Min = 60, Max = 75 },
-            PassCondition = new PassCondition { Type = "score_threshold", Field = "score", Threshold = 75 },
-            PayloadIdentifiers = new List<string> { "score" },
-            RequiresPreviousTaskFailedId = 20,
-            DerivedFactsToStore = new List<DerivedFactMapping> { new() { SourceField = "score", TargetFactName = "iq_score" } }
-        };
-        _nodes[21] = task2b;
-        AddChild(2, task2b);
+        if (!File.Exists(configPath))
+        {
+            _logger.LogError($"Flow configuration file not found at {configPath}");
+            return false;
+        }
 
-        var step3 = new FlowNode { Id = 3, Name = "Interview", Role = NodeRole.Step, ParentId = null, Order = 3 };
-        _nodes[3] = step3;
-        var task3a = new FlowNode { Id = 30, Name = "Schedule interview", Role = NodeRole.Task, ParentId = 3, Order = 1, PayloadIdentifiers = new List<string> { "interview_date" } };
-        _nodes[30] = task3a;
-        AddChild(3, task3a);
-        var task3b = new FlowNode 
-        { 
-            Id = 31, 
-            Name = "Perform interview", 
-            Role = NodeRole.Task, 
-            ParentId = 3, 
-            Order = 2, 
-            PassCondition = new PassCondition { Type = "decision_equals", Field = "decision", ExpectedValue = "passed_interview" },
-            PayloadIdentifiers = new List<string> { "decision", "interviewer_id" }
-        };
-        _nodes[31] = task3b;
-        AddChild(3, task3b);
+        try
+        {
+            var jsonContent = await File.ReadAllTextAsync(configPath).ConfigureAwait(false);
+            var flowConfig = JsonConvert.DeserializeObject<FlowConfiguration>(jsonContent);
 
-        var step4 = new FlowNode { Id = 4, Name = "Sign Contract", Role = NodeRole.Step, ParentId = null, Order = 4 };
-        _nodes[4] = step4;
-        var task4a = new FlowNode { Id = 40, Name = "Upload identification document", Role = NodeRole.Task, ParentId = 4, Order = 1, PayloadIdentifiers = new List<string> { "passport_number" } };
-        _nodes[40] = task4a;
-        AddChild(4, task4a);
-        var task4b = new FlowNode { Id = 41, Name = "Sign contract", Role = NodeRole.Task, ParentId = 4, Order = 2, PayloadIdentifiers = new List<string> { "signature", "contract_signed" } };
-        _nodes[41] = task4b;
-        AddChild(4, task4b);
+            if (flowConfig?.Steps == null || flowConfig.Steps.Count == 0)
+            {
+                _logger.LogError("Flow configuration is empty");
+                return false;
+            }
 
-        var step5 = new FlowNode { Id = 5, Name = "Payment", Role = NodeRole.Step, ParentId = null, Order = 5 };
-        _nodes[5] = step5;
-        var task5 = new FlowNode { Id = 50, Name = "Complete payment", Role = NodeRole.Task, ParentId = 5, Order = 1, PayloadIdentifiers = new List<string> { "payment_id" } };
-        _nodes[50] = task5;
-        AddChild(5, task5);
-
-        var step6 = new FlowNode { Id = 6, Name = "Join Slack", Role = NodeRole.Step, ParentId = null, Order = 6 };
-        _nodes[6] = step6;
-        var task6 = new FlowNode { Id = 60, Name = "Join Slack workspace", Role = NodeRole.Task, ParentId = 6, Order = 1, PayloadIdentifiers = new List<string> { "slack_email", "slack_joined" } };
-        _nodes[60] = task6;
-        AddChild(6, task6);
+            ProcessFlowConfiguration(flowConfig);
+            
+            _logger.LogInformation($"Successfully loaded {flowConfig.Steps.Count} steps from flow configuration");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error loading flow configuration from {configPath}");
+            return false;
+        }
     }
 
-    private void AddChild(int parentId, FlowNode child)
+    private void ProcessFlowConfiguration(FlowConfiguration flowConfig)
     {
-        if (!_childrenByParent.ContainsKey(parentId))
-            _childrenByParent[parentId] = new List<FlowNode>();
-        _childrenByParent[parentId].Add(child);
+        foreach (var stepConfig in flowConfig.Steps)
+        {
+            ProcessStepConfiguration(stepConfig);
+        }
+    }
+
+    private void ProcessStepConfiguration(StepConfiguration stepConfig)
+    {
+        if (!_nodesById.TryGetValue(stepConfig.NodeId, out var stepNode))
+        {
+            _logger.LogError($"Step node with ID {stepConfig.NodeId} not found in nodes configuration");
+            return;
+        }
+
+        stepNode.Role = NodeRole.Step;
+
+        foreach (var taskConfig in stepConfig.Tasks)
+        {
+            ProcessTaskConfiguration(taskConfig, stepNode.Id);
+        }
+    }
+
+    private void ProcessTaskConfiguration(TaskConfiguration taskConfig, int parentStepId)
+    {
+        if (!_nodesById.TryGetValue(taskConfig.NodeId, out var taskNode))
+        {
+            _logger.LogError($"Task node with ID {taskConfig.NodeId} not found in nodes configuration");
+            return;
+        }
+
+        taskNode.Role = NodeRole.Task;
+        taskNode.ParentId = parentStepId;
+        taskNode.VisibilityCondition = taskConfig.VisibilityCondition;
+        taskNode.PassCondition = taskConfig.PassCondition;
+        taskNode.PayloadIdentifiers = taskConfig.PayloadIdentifiers ?? new List<string>();
+        taskNode.RequiresPreviousTaskFailedId = taskConfig.RequiresPreviousTaskFailedId;
+        taskNode.DerivedFactsToStore = taskConfig.DerivedFactsToStore;
+
+        AddChildToParent(parentStepId, taskNode);
+    }
+
+    private static string GetConfigurationPath(string fileName)
+    {
+        return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Configuration", fileName);
+    }
+
+    private static FlowNode CreateNodeFromDefinition(NodeDefinition nodeDef)
+    {
+        return new FlowNode
+        {
+            Id = nodeDef.Id,
+            Name = nodeDef.Name,
+            Order = nodeDef.Order
+        };
+    }
+
+    private void AddNodeToLookups(FlowNode node)
+    {
+        _nodesById[node.Id] = node;
+        _nodesByName[node.Name.ToLowerInvariant()] = node;
+    }
+
+    private void AddChildToParent(int parentId, FlowNode child)
+    {
+        _childrenByParentId.AddOrUpdate(
+            parentId,
+            _ => new List<FlowNode> { child },
+            (_, existingList) =>
+            {
+                existingList.Add(child);
+                return existingList;
+            });
+    }
+
+    private void BuildRootStepsCache()
+    {
+        lock (_rootStepsLock)
+        {
+            _cachedRootSteps = _nodesById.Values
+                .Where(n => n.Role == NodeRole.Step && n.ParentId == null)
+                .OrderBy(n => n.Order)
+                .ToList();
+        }
+    }
+
+    private void LoadFallbackNodes()
+    {
+        var fallbackNodes = GetFallbackNodeDefinitions();
+        foreach (var nodeDef in fallbackNodes)
+        {
+            var node = CreateNodeFromDefinition(nodeDef);
+            AddNodeToLookups(node);
+        }
+    }
+
+    private void LoadFallbackFlow()
+    {
+        var fallbackSteps = GetFallbackStepConfigurations();
+        foreach (var stepConfig in fallbackSteps)
+        {
+            ProcessStepConfiguration(stepConfig);
+        }
+    }
+
+    private static List<NodeDefinition> GetFallbackNodeDefinitions()
+    {
+        return new List<NodeDefinition>
+        {
+            new() { Id = 1, Name = "Personal Details Form", Order = 1 },
+            new() { Id = 10, Name = "Complete personal details", Order = 1 },
+            new() { Id = 2, Name = "IQ Test", Order = 2 },
+            new() { Id = 20, Name = "Take IQ test", Order = 1 },
+            new() { Id = 21, Name = "Take second chance IQ test", Order = 2 },
+            new() { Id = 3, Name = "Interview", Order = 3 },
+            new() { Id = 30, Name = "Schedule interview", Order = 1 },
+            new() { Id = 31, Name = "Perform interview", Order = 2 },
+            new() { Id = 4, Name = "Sign Contract", Order = 4 },
+            new() { Id = 40, Name = "Upload identification document", Order = 1 },
+            new() { Id = 41, Name = "Sign contract", Order = 2 },
+            new() { Id = 5, Name = "Payment", Order = 5 },
+            new() { Id = 50, Name = "Complete payment", Order = 1 },
+            new() { Id = 6, Name = "Join Slack", Order = 6 },
+            new() { Id = 60, Name = "Join Slack workspace", Order = 1 }
+        };
+    }
+
+    private static List<StepConfiguration> GetFallbackStepConfigurations()
+    {
+        return new List<StepConfiguration>
+        {
+            new() { NodeId = 1, Tasks = new List<TaskConfiguration> { new() { NodeId = 10, PayloadIdentifiers = new List<string> { "first_name", "last_name", "email" } } } },
+            new() { NodeId = 2, Tasks = new List<TaskConfiguration>
+            {
+                new() { NodeId = 20, PassCondition = new PassCondition { Type = ConditionTypes.ScoreThreshold, Field = "score", Threshold = 75 }, PayloadIdentifiers = new List<string> { "score", "test_id" }, DerivedFactsToStore = new List<DerivedFactMapping> { new() { SourceField = "score", TargetFactName = "iq_score" } } },
+                new() { NodeId = 21, VisibilityCondition = new VisibilityCondition { Type = ConditionTypes.ScoreRange, Field = "iq_score", Min = 60, Max = 75 }, PassCondition = new PassCondition { Type = ConditionTypes.ScoreThreshold, Field = "score", Threshold = 75 }, PayloadIdentifiers = new List<string> { "score" }, RequiresPreviousTaskFailedId = 20, DerivedFactsToStore = new List<DerivedFactMapping> { new() { SourceField = "score", TargetFactName = "iq_score" } } }
+            } },
+            new() { NodeId = 3, Tasks = new List<TaskConfiguration>
+            {
+                new() { NodeId = 30, PayloadIdentifiers = new List<string> { "interview_date" } },
+                new() { NodeId = 31, PassCondition = new PassCondition { Type = ConditionTypes.DecisionEquals, Field = "decision", ExpectedValue = "passed_interview" }, PayloadIdentifiers = new List<string> { "decision", "interviewer_id" } }
+            } },
+            new() { NodeId = 4, Tasks = new List<TaskConfiguration>
+            {
+                new() { NodeId = 40, PayloadIdentifiers = new List<string> { "passport_number" } },
+                new() { NodeId = 41, PayloadIdentifiers = new List<string> { "signature", "contract_signed" } }
+            } },
+            new() { NodeId = 5, Tasks = new List<TaskConfiguration> { new() { NodeId = 50, PayloadIdentifiers = new List<string> { "payment_id" } } } },
+            new() { NodeId = 6, Tasks = new List<TaskConfiguration> { new() { NodeId = 60, PayloadIdentifiers = new List<string> { "slack_email", "slack_joined" } } } }
+        };
     }
 
     public Task<List<FlowNode>> GetAllNodesAsync()
     {
-        return Task.FromResult(_nodes.Values.ToList());
+        return Task.FromResult(_nodesById.Values.ToList());
     }
 
     public Task<FlowNode?> GetNodeByIdAsync(int nodeId)
     {
-        _nodes.TryGetValue(nodeId, out var node);
+        _nodesById.TryGetValue(nodeId, out var node);
+        return Task.FromResult(node);
+    }
+
+    public Task<FlowNode?> GetNodeByNameAsync(string name)
+    {
+        _nodesByName.TryGetValue(name.ToLowerInvariant(), out var node);
         return Task.FromResult(node);
     }
 
     public Task<List<FlowNode>> GetChildNodesAsync(int parentId)
     {
-        if (_childrenByParent.TryGetValue(parentId, out var children))
+        if (_childrenByParentId.TryGetValue(parentId, out var children))
             return Task.FromResult(children.OrderBy(c => c.Order).ToList());
         return Task.FromResult(new List<FlowNode>());
     }
 
     public Task<List<FlowNode>> GetRootStepsAsync()
     {
-        return Task.FromResult(_nodes.Values
-            .Where(n => n.Role == NodeRole.Step && n.ParentId == null)
-            .OrderBy(n => n.Order)
-            .ToList());
+        lock (_rootStepsLock)
+        {
+            return Task.FromResult(_cachedRootSteps?.ToList() ?? new List<FlowNode>());
+        }
     }
-}
-
-internal class FlowConfiguration
-{
-    public List<StepConfiguration> Steps { get; set; } = new();
-}
-
-internal class StepConfiguration
-{
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public int Order { get; set; }
-    public List<TaskConfiguration>? Tasks { get; set; }
-}
-
-internal class TaskConfiguration
-{
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public int Order { get; set; }
-    public VisibilityCondition? VisibilityCondition { get; set; }
-    public PassCondition? PassCondition { get; set; }
-    public List<string>? PayloadIdentifiers { get; set; }
-    public int? RequiresPreviousTaskFailedId { get; set; }
-    public List<DerivedFactMapping>? DerivedFactsToStore { get; set; }
 }

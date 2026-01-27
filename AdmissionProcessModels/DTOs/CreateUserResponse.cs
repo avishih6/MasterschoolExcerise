@@ -1,0 +1,6 @@
+namespace AdmissionProcessModels.DTOs;
+
+public class CreateUserResponse
+{
+    public string UserId { get; set; } = string.Empty;
+}

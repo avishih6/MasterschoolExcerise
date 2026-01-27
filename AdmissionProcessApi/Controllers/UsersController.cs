@@ -1,5 +1,7 @@
-using AdmissionProcessApi.Models.DTOs;
-using AdmissionProcessApi.Services;
+using AdmissionProcessApi.DTOs;
+using AdmissionProcessBL.Services;
+using AdmissionProcessBL.Services.Interfaces;
+using AdmissionProcessModels.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AdmissionProcessApi.Controllers;
@@ -22,31 +24,41 @@ public class UsersController : ControllerBase
         _logger = logger;
     }
 
-    // 0
+    // 1
     [HttpPost("CreateUser")]
-    public async Task<ActionResult<CreateUserResponse>> CreateUserAsync([FromBody] CreateUserRequest request)
+    public async Task<IActionResult> CreateUserAsync([FromBody] CreateUserRequest request)
     {
         var result = await _userService.CreateUserAsync(request.Email).ConfigureAwait(false);
         
         if (!result.IsSuccess)
         {
-            _logger.LogWarning("Failed to create user: {Error}", result.ErrorMessage);
-            return BadRequest(new { error = result.ErrorMessage });
+            if (result.HttpStatusCode == 409)
+            {
+                _logger.LogInformation($"CreateUserAsync: user already exists with email {request.Email}");
+                return Conflict(new ErrorResponse 
+                { 
+                    Error = result.ErrorMessage ?? "User already exists",
+                    ExistingUserId = result.Data?.UserId
+                });
+            }
+            
+            _logger.LogError($"CreateUserAsync failed: {result.ErrorMessage}");
+            return BadRequest(new ErrorResponse { Error = result.ErrorMessage ?? "Failed to create user" });
         }
         
-        return Ok(new CreateUserResponse { UserId = result.Data! });
+        return Ok(result.Data);
     }
 
-    // 4
-    [HttpGet("{userId}/Status")]
-    public async Task<ActionResult<StatusResponse>> GetStatusAsync(string userId)
+    // 5
+    [HttpGet("{userId}/GetUserStatus")]
+    public async Task<IActionResult> GetUserStatusAsync(string userId)
     {
-        var result = await _statusService.GetStatusAsync(userId).ConfigureAwait(false);
+        var result = await _statusService.GetUserStatusAsync(userId).ConfigureAwait(false);
         
         if (!result.IsSuccess)
         {
-            _logger.LogWarning("Failed to get status for user {UserId}: {Error}", userId, result.ErrorMessage);
-            return BadRequest(new { error = result.ErrorMessage });
+            _logger.LogError($"GetUserStatusAsync failed for user {userId}: {result.ErrorMessage}");
+            return BadRequest(new ErrorResponse { Error = result.ErrorMessage ?? "Failed to get status" });
         }
         
         return Ok(result.Data);

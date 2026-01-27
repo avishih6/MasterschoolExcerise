@@ -22,6 +22,7 @@ public class UsersController : ControllerBase
         _logger = logger;
     }
 
+    // 0
     [HttpPost("CreateUser")]
     public async Task<ActionResult<CreateUserResponse>> CreateUserAsync([FromBody] CreateUserRequest request)
     {
@@ -36,6 +37,7 @@ public class UsersController : ControllerBase
         return Ok(new CreateUserResponse { UserId = result.Data! });
     }
 
+    // 4
     [HttpGet("{userId}/Status")]
     public async Task<ActionResult<StatusResponse>> GetStatusAsync(string userId)
     {

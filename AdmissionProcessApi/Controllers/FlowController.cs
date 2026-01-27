@@ -22,6 +22,7 @@ public class FlowController : ControllerBase
         _logger = logger;
     }
 
+    // 1
     [HttpGet("GetFlowForUser")]
     public async Task<ActionResult<FlowResponse>> GetFlowForUserAsync([FromQuery] string userId)
     {
@@ -36,6 +37,7 @@ public class FlowController : ControllerBase
         return Ok(result.Data);
     }
 
+    // 2
     [HttpGet("GetCurrentStepForUser")]
     public async Task<ActionResult<CurrentProgressResponse>> GetCurrentStepForUserAsync([FromQuery] string userId)
     {
@@ -49,7 +51,8 @@ public class FlowController : ControllerBase
         
         return Ok(result.Data);
     }
-
+    
+    // 3
     [HttpPut("Complete")]
     public async Task<IActionResult> CompleteStepAsync([FromBody] CompleteStepRequest request)
     {

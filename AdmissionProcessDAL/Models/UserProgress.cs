@@ -3,23 +3,24 @@ namespace AdmissionProcessDAL.Models;
 public class UserProgress
 {
     public string UserId { get; set; } = string.Empty;
-    public Dictionary<string, StepCompletion> CompletedSteps { get; set; } = new();
-    public Dictionary<string, TaskCompletion> CompletedTasks { get; set; } = new();
+    public Dictionary<int, NodeStatus> NodeStatuses { get; set; } = new();
+    public Dictionary<string, object> DerivedFacts { get; set; } = new();
+    
+    public int? CurrentStepId { get; set; }
+    public int? CurrentTaskId { get; set; }
+    public ProgressStatus CachedOverallStatus { get; set; } = ProgressStatus.NotStarted;
+    public DateTime CacheUpdatedAt { get; set; }
 }
 
-public class StepCompletion
+public class NodeStatus
 {
-    public string StepName { get; set; } = string.Empty;
-    public DateTime CompletedAt { get; set; }
-    public bool Passed { get; set; }
-    public Dictionary<string, object>? Payload { get; set; }
+    public ProgressStatus Status { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }
 
-public class TaskCompletion
+public enum ProgressStatus
 {
-    public string TaskName { get; set; } = string.Empty;
-    public string StepName { get; set; } = string.Empty;
-    public DateTime CompletedAt { get; set; }
-    public bool Passed { get; set; }
-    public Dictionary<string, object>? Payload { get; set; }
+    NotStarted = 0,
+    Accepted = 1,
+    Rejected = 2
 }

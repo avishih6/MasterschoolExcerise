@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
 using AdmissionProcessApi.Models.DTOs;
 using AdmissionProcessApi.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace AdmissionProcessApi.Controllers;
 
@@ -9,21 +9,61 @@ namespace AdmissionProcessApi.Controllers;
 public class FlowController : ControllerBase
 {
     private readonly IFlowService _flowService;
+    private readonly IProgressService _progressService;
+    private readonly ILogger<FlowController> _logger;
 
-    public FlowController(IFlowService flowService)
+    public FlowController(
+        IFlowService flowService, 
+        IProgressService progressService,
+        ILogger<FlowController> logger)
     {
         _flowService = flowService;
+        _progressService = progressService;
+        _logger = logger;
     }
 
-    /// <summary>
-    /// Retrieve the entire flow (enabling us to inform the user "You are on step 3 of 8" and display remaining steps)
-    /// </summary>
-    /// <param name="userId">Optional user ID to filter visible tasks based on user progress</param>
-    [HttpGet]
-    [ProducesResponseType(typeof(FlowResponse), StatusCodes.Status200OK)]
-    public async Task<ActionResult<FlowResponse>> GetFlow([FromQuery] string? userId = null)
+    [HttpGet("GetFlowForUser")]
+    public async Task<ActionResult<FlowResponse>> GetFlowForUserAsync([FromQuery] string userId)
     {
-        var response = await _flowService.GetFlowAsync(userId);
-        return Ok(response);
+        var result = await _flowService.GetFlowForUserAsync(userId).ConfigureAwait(false);
+        
+        if (!result.IsSuccess)
+        {
+            _logger.LogWarning("Failed to get flow for user {UserId}: {Error}", userId, result.ErrorMessage);
+            return BadRequest(new { error = result.ErrorMessage });
+        }
+        
+        return Ok(result.Data);
+    }
+
+    [HttpGet("GetCurrentStepForUser")]
+    public async Task<ActionResult<CurrentProgressResponse>> GetCurrentStepForUserAsync([FromQuery] string userId)
+    {
+        var result = await _progressService.GetCurrentProgressAsync(userId).ConfigureAwait(false);
+        
+        if (!result.IsSuccess)
+        {
+            _logger.LogWarning("Failed to get current step for user {UserId}: {Error}", userId, result.ErrorMessage);
+            return BadRequest(new { error = result.ErrorMessage });
+        }
+        
+        return Ok(result.Data);
+    }
+
+    [HttpPut("Complete")]
+    public async Task<IActionResult> CompleteStepAsync([FromBody] CompleteStepRequest request)
+    {
+        var result = await _progressService.CompleteStepAsync(
+            request.UserId, 
+            request.StepName, 
+            request.StepPayload).ConfigureAwait(false);
+        
+        if (!result.IsSuccess)
+        {
+            _logger.LogWarning("Failed to complete step for user {UserId}: {Error}", request.UserId, result.ErrorMessage);
+            return BadRequest(new { error = result.ErrorMessage });
+        }
+        
+        return NoContent();
     }
 }

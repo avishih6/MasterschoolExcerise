@@ -1,21 +1,19 @@
 {
   "version": 2,
-  "dgSpecHash": "7qgmkwMmMP4=",
+  "dgSpecHash": "/oSLpKHiBqc=",
   "success": true,
   "projectFilePath": "/Users/avishayhadar/Repos/AdmissionProcessDAL/AdmissionProcessDAL.csproj",
   "expectedPackageFiles": [
+    "/Users/avishayhadar/.nuget/packages/microsoft.extensions.configuration/8.0.0/microsoft.extensions.configuration.8.0.0.nupkg.sha512",
+    "/Users/avishayhadar/.nuget/packages/microsoft.extensions.configuration.abstractions/8.0.0/microsoft.extensions.configuration.abstractions.8.0.0.nupkg.sha512",
+    "/Users/avishayhadar/.nuget/packages/microsoft.extensions.configuration.fileextensions/8.0.0/microsoft.extensions.configuration.fileextensions.8.0.0.nupkg.sha512",
+    "/Users/avishayhadar/.nuget/packages/microsoft.extensions.configuration.json/8.0.0/microsoft.extensions.configuration.json.8.0.0.nupkg.sha512",
     "/Users/avishayhadar/.nuget/packages/microsoft.extensions.dependencyinjection.abstractions/8.0.0/microsoft.extensions.dependencyinjection.abstractions.8.0.0.nupkg.sha512",
+    "/Users/avishayhadar/.nuget/packages/microsoft.extensions.fileproviders.abstractions/8.0.0/microsoft.extensions.fileproviders.abstractions.8.0.0.nupkg.sha512",
+    "/Users/avishayhadar/.nuget/packages/microsoft.extensions.fileproviders.physical/8.0.0/microsoft.extensions.fileproviders.physical.8.0.0.nupkg.sha512",
+    "/Users/avishayhadar/.nuget/packages/microsoft.extensions.filesystemglobbing/8.0.0/microsoft.extensions.filesystemglobbing.8.0.0.nupkg.sha512",
     "/Users/avishayhadar/.nuget/packages/microsoft.extensions.logging.abstractions/8.0.0/microsoft.extensions.logging.abstractions.8.0.0.nupkg.sha512",
-    "/Users/avishayhadar/.nuget/packages/microsoft.netcore.platforms/1.1.0/microsoft.netcore.platforms.1.1.0.nupkg.sha512",
-    "/Users/avishayhadar/.nuget/packages/netstandard.library/1.6.1/netstandard.library.1.6.1.nupkg.sha512",
-    "/Users/avishayhadar/.nuget/packages/xunit/2.4.2/xunit.2.4.2.nupkg.sha512",
-    "/Users/avishayhadar/.nuget/packages/xunit.abstractions/2.0.3/xunit.abstractions.2.0.3.nupkg.sha512",
-    "/Users/avishayhadar/.nuget/packages/xunit.analyzers/1.0.0/xunit.analyzers.1.0.0.nupkg.sha512",
-    "/Users/avishayhadar/.nuget/packages/xunit.assert/2.4.2/xunit.assert.2.4.2.nupkg.sha512",
-    "/Users/avishayhadar/.nuget/packages/xunit.core/2.4.2/xunit.core.2.4.2.nupkg.sha512",
-    "/Users/avishayhadar/.nuget/packages/xunit.extensibility.core/2.4.2/xunit.extensibility.core.2.4.2.nupkg.sha512",
-    "/Users/avishayhadar/.nuget/packages/xunit.extensibility.execution/2.4.2/xunit.extensibility.execution.2.4.2.nupkg.sha512",
-    "/Users/avishayhadar/.nuget/packages/xunit.runner.visualstudio/2.4.5/xunit.runner.visualstudio.2.4.5.nupkg.sha512"
+    "/Users/avishayhadar/.nuget/packages/microsoft.extensions.primitives/8.0.0/microsoft.extensions.primitives.8.0.0.nupkg.sha512"
   ],
   "logs": []
 }

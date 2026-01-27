@@ -8,25 +8,10 @@
 
   <ItemGroup>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
-    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.18.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.0" />
-  </ItemGroup>
-
-  <!-- 
-    To use AdmissionProcessDAL as a NuGet package from local feed:
-    1. Build and pack the DAL: dotnet pack -c Release -o ./packages
-    2. Add local NuGet source: dotnet nuget add source ./packages -n LocalPackages
-    3. Uncomment the PackageReference below and remove the ProjectReference
-  -->
-  <ItemGroup>
-    <ProjectReference Include="../AdmissionProcessDAL/AdmissionProcessDAL.csproj" />
-    <!-- <PackageReference Include="AdmissionProcessDAL" Version="1.0.0" /> -->
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Configuration\conditions.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <ProjectReference Include="..\AdmissionProcessDAL\AdmissionProcessDAL.csproj" />
   </ItemGroup>
 
 </Project>

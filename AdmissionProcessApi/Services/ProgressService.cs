@@ -1,412 +1,345 @@
-using AdmissionProcessDAL.Models;
-using AdmissionProcessDAL.Services;
 using AdmissionProcessApi.Models.DTOs;
+using AdmissionProcessDAL.Models;
+using AdmissionProcessDAL.Repositories.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace AdmissionProcessApi.Services;
 
 public class ProgressService : IProgressService
 {
-    private readonly IStepDataService _stepDataService;
-    private readonly ITaskDataService _taskDataService;
-    private readonly IStepTaskDataService _stepTaskDataService;
-    private readonly IUserProgressDataService _userProgressDataService;
-    private readonly IUserDataService _userDataService;
-    private readonly IUserTaskAssignmentDataService _userTaskAssignmentDataService;
-    private readonly IConditionEvaluator _conditionEvaluator;
+    private readonly IFlowRepository _flowRepository;
+    private readonly IProgressRepository _progressRepository;
+    private readonly IPassEvaluator _passEvaluator;
+    private readonly ILogger<ProgressService> _logger;
 
     public ProgressService(
-        IStepDataService stepDataService,
-        ITaskDataService taskDataService,
-        IStepTaskDataService stepTaskDataService,
-        IUserProgressDataService userProgressDataService,
-        IUserDataService userDataService,
-        IUserTaskAssignmentDataService userTaskAssignmentDataService,
-        IConditionEvaluator conditionEvaluator)
+        IFlowRepository flowRepository,
+        IProgressRepository progressRepository,
+        IPassEvaluator passEvaluator,
+        ILogger<ProgressService> logger)
     {
-        _stepDataService = stepDataService;
-        _taskDataService = taskDataService;
-        _stepTaskDataService = stepTaskDataService;
-        _userProgressDataService = userProgressDataService;
-        _userDataService = userDataService;
-        _userTaskAssignmentDataService = userTaskAssignmentDataService;
-        _conditionEvaluator = conditionEvaluator;
+        _flowRepository = flowRepository;
+        _progressRepository = progressRepository;
+        _passEvaluator = passEvaluator;
+        _logger = logger;
     }
 
-    public async Task<UserProgressResponse> GetUserProgressAsync(string userId)
+    public async Task<ServiceResult<CurrentProgressResponse>> GetCurrentProgressAsync(string userId)
     {
-        if (!await _userDataService.UserExistsAsync(userId))
+        try
         {
-            throw new KeyNotFoundException($"User with ID {userId} not found");
+            var userProgress = await _progressRepository.GetOrCreateProgressAsync(userId).ConfigureAwait(false);
+            
+            if (userProgress.CurrentStepId.HasValue)
+            {
+                var currentStep = await _flowRepository.GetNodeByIdAsync(userProgress.CurrentStepId.Value).ConfigureAwait(false);
+                FlowNode? currentTask = null;
+                
+                if (userProgress.CurrentTaskId.HasValue)
+                {
+                    currentTask = await _flowRepository.GetNodeByIdAsync(userProgress.CurrentTaskId.Value).ConfigureAwait(false);
+                }
+                
+                return ServiceResult<CurrentProgressResponse>.Success(new CurrentProgressResponse
+                {
+                    CurrentStep = currentStep?.Name,
+                    CurrentTask = currentTask?.Name
+                });
+            }
+            
+            var calculatedProgress = await CalculateCurrentProgressAsync(userProgress).ConfigureAwait(false);
+            return ServiceResult<CurrentProgressResponse>.Success(calculatedProgress);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting current progress for user: {UserId}", userId);
+            return ServiceResult<CurrentProgressResponse>.Failure("An error occurred while retrieving progress");
+        }
+    }
+
+    public async Task<ServiceResult> CompleteStepAsync(string userId, string stepName, Dictionary<string, object> payload)
+    {
+        try
+        {
+            var stepFindResult = await FindStepByNameAsync(stepName).ConfigureAwait(false);
+            if (!stepFindResult.IsSuccess)
+            {
+                return ServiceResult.Failure(stepFindResult.ErrorMessage ?? "Step not found");
+            }
+
+            var stepNode = stepFindResult.Data!;
+            var userProgress = await _progressRepository.GetOrCreateProgressAsync(userId).ConfigureAwait(false);
+            var tasks = await _flowRepository.GetChildNodesAsync(stepNode.Id).ConfigureAwait(false);
+
+            if (tasks.Count == 0)
+            {
+                await ProcessStepWithoutTasksAsync(stepNode, payload, userProgress).ConfigureAwait(false);
+            }
+            else
+            {
+                await ProcessStepWithTasksAsync(stepNode, tasks, payload, userProgress).ConfigureAwait(false);
+            }
+
+            await UpdateProgressCacheAsync(userProgress).ConfigureAwait(false);
+            await _progressRepository.SaveProgressAsync(userProgress).ConfigureAwait(false);
+
+            _logger.LogInformation("Step '{StepName}' completed for user {UserId}", stepName, userId);
+            return ServiceResult.Success();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error completing step '{StepName}' for user: {UserId}", stepName, userId);
+            return ServiceResult.Failure("An error occurred while completing the step");
+        }
+    }
+
+    private async Task<ServiceResult<FlowNode>> FindStepByNameAsync(string stepName)
+    {
+        var rootSteps = await _flowRepository.GetRootStepsAsync().ConfigureAwait(false);
+        var stepNode = rootSteps.FirstOrDefault(s => s.Name.Equals(stepName, StringComparison.OrdinalIgnoreCase));
+        
+        if (stepNode == null)
+        {
+            _logger.LogWarning("Step '{StepName}' not found", stepName);
+            return ServiceResult<FlowNode>.Failure($"Step '{stepName}' not found");
+        }
+        
+        return ServiceResult<FlowNode>.Success(stepNode);
+    }
+
+    private async Task ProcessStepWithoutTasksAsync(FlowNode step, Dictionary<string, object> payload, UserProgress progress)
+    {
+        var passed = await _passEvaluator.EvaluateAsync(step, payload).ConfigureAwait(false);
+        UpdateNodeStatus(progress, step.Id, passed);
+    }
+
+    private async Task ProcessStepWithTasksAsync(FlowNode step, List<FlowNode> tasks, Dictionary<string, object> payload, UserProgress progress)
+    {
+        var task = DetermineTaskFromPayload(tasks, payload, progress);
+        
+        if (task == null)
+        {
+            _logger.LogWarning("Could not determine task from payload for step: {StepName}", step.Name);
+            return;
         }
 
-        var steps = await _stepDataService.GetActiveStepsAsync();
-        var userProgress = await _userProgressDataService.GetOrCreateUserProgressAsync(userId);
+        var passed = await _passEvaluator.EvaluateAsync(task, payload).ConfigureAwait(false);
+        StoreDerivedFactsIfNeeded(task, payload, progress);
+        UpdateNodeStatus(progress, task.Id, passed);
+        
+        TryMarkStepAsComplete(step, tasks, progress);
+    }
 
-        var (currentStep, currentTask) = await DetermineCurrentStepAndTaskAsync(steps, userProgress);
+    private FlowNode? DetermineTaskFromPayload(List<FlowNode> tasks, Dictionary<string, object> payload, UserProgress progress)
+    {
+        if (tasks.Count == 1)
+            return tasks[0];
 
-        return new UserProgressResponse
+        foreach (var task in tasks.OrderBy(t => t.Order))
         {
-            CurrentStep = currentStep?.Name,
-            CurrentTask = currentTask?.Name,
-            CurrentStepNumber = currentStep != null ? currentStep.Order : 0,
-            TotalSteps = steps.Count
+            if (task.RequiresPreviousTaskFailedId.HasValue)
+            {
+                var previousStatus = progress.NodeStatuses.GetValueOrDefault(task.RequiresPreviousTaskFailedId.Value);
+                if (previousStatus?.Status != ProgressStatus.Rejected)
+                    continue;
+            }
+
+            if (task.PayloadIdentifiers.Count > 0 && task.PayloadIdentifiers.Any(id => payload.ContainsKey(id)))
+            {
+                if (!progress.NodeStatuses.ContainsKey(task.Id))
+                    return task;
+            }
+        }
+
+        return tasks.FirstOrDefault(t => !progress.NodeStatuses.ContainsKey(t.Id));
+    }
+
+    private void StoreDerivedFactsIfNeeded(FlowNode task, Dictionary<string, object> payload, UserProgress progress)
+    {
+        if (task.DerivedFactsToStore == null)
+            return;
+
+        foreach (var mapping in task.DerivedFactsToStore)
+        {
+            if (payload.TryGetValue(mapping.SourceField, out var value))
+            {
+                progress.DerivedFacts[mapping.TargetFactName] = value;
+            }
+        }
+    }
+
+    private void UpdateNodeStatus(UserProgress progress, int nodeId, bool passed)
+    {
+        progress.NodeStatuses[nodeId] = new NodeStatus
+        {
+            Status = passed ? ProgressStatus.Accepted : ProgressStatus.Rejected,
+            UpdatedAt = DateTime.UtcNow
         };
     }
 
-    public async System.Threading.Tasks.Task CompleteStepAsync(CompleteStepRequest request)
+    private void TryMarkStepAsComplete(FlowNode step, List<FlowNode> tasks, UserProgress progress)
     {
-        if (!await _userDataService.UserExistsAsync(request.UserId))
+        var visibleTasks = tasks.Where(t => t.IsVisibleForUser(progress)).ToList();
+        var allTasksComplete = visibleTasks.All(t => progress.NodeStatuses.ContainsKey(t.Id));
+        
+        if (!allTasksComplete)
+            return;
+
+        var allTasksAccepted = visibleTasks.All(t =>
         {
-            throw new KeyNotFoundException($"User with ID {request.UserId} not found");
-        }
-
-        var step = await _stepDataService.GetStepByNameAsync(request.StepName);
-        if (step == null)
-        {
-            throw new ArgumentException($"Step '{request.StepName}' not found");
-        }
-
-        var userProgress = await _userProgressDataService.GetOrCreateUserProgressAsync(request.UserId);
-
-        // Determine which task this payload corresponds to
-        var task = await DetermineTaskFromPayloadAsync(step, request.StepPayload, userProgress);
-
-        if (task != null)
-        {
-            // Mark task as completed
-            var taskKey = $"{step.Name}_{task.Name}";
-            var passed = await _conditionEvaluator.EvaluatePassingConditionAsync(
-                task.PassingConditionType,
-                task.PassingConditionConfig,
-                request.StepPayload);
-
-            userProgress.CompletedTasks[taskKey] = new TaskCompletion
-            {
-                TaskName = task.Name,
-                StepName = step.Name,
-                CompletedAt = DateTime.UtcNow,
-                Passed = passed,
-                Payload = request.StepPayload
-            };
-        }
-
-        // Check if step is complete (all tasks are done)
-        var taskIds = await _stepTaskDataService.GetTaskIdsForStepAsync(step.Id);
-        var tasks = new List<FlowTask>();
-        foreach (var taskId in taskIds)
-        {
-            var t = await _taskDataService.GetTaskByIdAsync(taskId);
-            if (t != null && t.IsActive)
-                tasks.Add(t);
-        }
-
-        var visibleTasks = await GetVisibleTasksForUserAsync(step, tasks, request.UserId, userProgress);
-        var allTasksCompleted = visibleTasks.All(t =>
-        {
-            var taskKey = $"{step.Name}_{t.Name}";
-            return userProgress.CompletedTasks.ContainsKey(taskKey);
+            var status = progress.NodeStatuses.GetValueOrDefault(t.Id);
+            return status?.Status == ProgressStatus.Accepted;
         });
 
-        if (allTasksCompleted)
+        progress.NodeStatuses[step.Id] = new NodeStatus
         {
-            // Check if all tasks passed
-            var allTasksPassed = visibleTasks.All(t =>
-            {
-                var taskKey = $"{step.Name}_{t.Name}";
-                if (userProgress.CompletedTasks.TryGetValue(taskKey, out var completion))
-                {
-                    return completion.Passed;
-                }
-                return false;
-            });
-
-            userProgress.CompletedSteps[step.Name] = new StepCompletion
-            {
-                StepName = step.Name,
-                CompletedAt = DateTime.UtcNow,
-                Passed = allTasksPassed,
-                Payload = request.StepPayload
-            };
-        }
-
-        await _userProgressDataService.UpdateUserProgressAsync(userProgress);
+            Status = allTasksAccepted ? ProgressStatus.Accepted : ProgressStatus.Rejected,
+            UpdatedAt = DateTime.UtcNow
+        };
     }
 
-    public async Task<UserStatusResponse> GetUserStatusAsync(string userId)
+    private async Task<CurrentProgressResponse> CalculateCurrentProgressAsync(UserProgress userProgress)
     {
-        if (!await _userDataService.UserExistsAsync(userId))
+        var rootSteps = await _flowRepository.GetRootStepsAsync().ConfigureAwait(false);
+
+        foreach (var stepNode in rootSteps.OrderBy(s => s.Order))
         {
-            throw new KeyNotFoundException($"User with ID {userId} not found");
-        }
+            var tasks = await _flowRepository.GetChildNodesAsync(stepNode.Id).ConfigureAwait(false);
+            var visibleTasks = tasks.Where(t => t.IsVisibleForUser(userProgress)).ToList();
 
-        var steps = await _stepDataService.GetActiveStepsAsync();
-        var userProgress = await _userProgressDataService.GetOrCreateUserProgressAsync(userId);
-
-        // Check if user completed all steps
-        var allStepsCompleted = true;
-        foreach (var step in steps)
-        {
-            var taskIds = await _stepTaskDataService.GetTaskIdsForStepAsync(step.Id);
-            var tasks = new List<FlowTask>();
-            foreach (var taskId in taskIds)
+            if (tasks.Count == 0)
             {
-                var t = await _taskDataService.GetTaskByIdAsync(taskId);
-                if (t != null && t.IsActive)
-                    tasks.Add(t);
-            }
-
-            var visibleTasks = await GetVisibleTasksForUserAsync(step, tasks, userId, userProgress);
-            if (!visibleTasks.Any())
-            {
-                // Step with no tasks is considered complete if step is marked complete
-                if (!userProgress.CompletedSteps.ContainsKey(step.Name))
+                var stepStatus = userProgress.NodeStatuses.GetValueOrDefault(stepNode.Id);
+                if (stepStatus?.Status != ProgressStatus.Accepted)
                 {
-                    allStepsCompleted = false;
-                    break;
+                    return new CurrentProgressResponse
+                    {
+                        CurrentStep = stepNode.Name,
+                        CurrentTask = null
+                    };
                 }
                 continue;
             }
 
-            // All tasks must be completed
-            var allTasksCompleted = visibleTasks.All(t =>
+            foreach (var task in visibleTasks.OrderBy(t => t.Order))
             {
-                var taskKey = $"{step.Name}_{t.Name}";
-                return userProgress.CompletedTasks.ContainsKey(taskKey);
-            });
-
-            if (!allTasksCompleted)
-            {
-                allStepsCompleted = false;
-                break;
-            }
-
-            // All tasks must have passed
-            var allTasksPassed = visibleTasks.All(t =>
-            {
-                var taskKey = $"{step.Name}_{t.Name}";
-                if (userProgress.CompletedTasks.TryGetValue(taskKey, out var completion))
+                var taskStatus = userProgress.NodeStatuses.GetValueOrDefault(task.Id);
+                if (taskStatus?.Status != ProgressStatus.Accepted)
                 {
-                    return completion.Passed;
-                }
-                return false; // Tasks not completed are not passed
-            });
-
-            if (!allTasksPassed)
-            {
-                allStepsCompleted = false;
-                break;
-            }
-        }
-
-        if (allStepsCompleted)
-        {
-            // Check if any step failed (rejected)
-            var anyStepFailed = steps.Any(step =>
-            {
-                if (userProgress.CompletedSteps.TryGetValue(step.Name, out var stepCompletion))
-                {
-                    return !stepCompletion.Passed;
-                }
-                return false;
-            });
-
-            if (anyStepFailed)
-            {
-                return new UserStatusResponse { Status = "rejected" };
-            }
-
-            return new UserStatusResponse { Status = "accepted" };
-        }
-
-        // Check if user is rejected (failed a required step)
-        var requiredStepsFailed = steps.Any(step =>
-        {
-            if (userProgress.CompletedSteps.TryGetValue(step.Name, out var stepCompletion))
-            {
-                return !stepCompletion.Passed;
-            }
-            return false;
-        });
-
-        if (requiredStepsFailed)
-        {
-            return new UserStatusResponse { Status = "rejected" };
-        }
-
-        return new UserStatusResponse { Status = "in_progress" };
-    }
-
-    private async Task<(Step? currentStep, FlowTask? currentTask)> DetermineCurrentStepAndTaskAsync(
-        List<Step> steps,
-        UserProgress userProgress)
-    {
-        foreach (var step in steps.OrderBy(s => s.Order))
-        {
-            var taskIds = await _stepTaskDataService.GetTaskIdsForStepAsync(step.Id);
-            var tasks = new List<FlowTask>();
-            foreach (var taskId in taskIds)
-            {
-                var t = await _taskDataService.GetTaskByIdAsync(taskId);
-                if (t != null && t.IsActive)
-                    tasks.Add(t);
-            }
-
-            // Check if step is incomplete
-            if (!userProgress.CompletedSteps.ContainsKey(step.Name))
-            {
-                var visibleTasks = await GetVisibleTasksForUserAsync(step, tasks, "", userProgress);
-                // Find first incomplete task
-                foreach (var task in visibleTasks.OrderBy(t => 
-                    _stepTaskDataService.GetStepTaskAsync(step.Id, t.Id).Result?.Order ?? 0))
-                {
-                    var taskKey = $"{step.Name}_{task.Name}";
-                    if (!userProgress.CompletedTasks.ContainsKey(taskKey))
+                    return new CurrentProgressResponse
                     {
-                        return (step, task);
-                    }
+                        CurrentStep = stepNode.Name,
+                        CurrentTask = task.Name
+                    };
                 }
-
-                // All tasks completed but step not marked complete
-                return (step, null);
             }
         }
 
-        // All steps completed
-        return (null, null);
+        return new CurrentProgressResponse
+        {
+            CurrentStep = null,
+            CurrentTask = null
+        };
     }
 
-    private async Task<FlowTask?> DetermineTaskFromPayloadAsync(
-        Step step, 
-        Dictionary<string, object> payload, 
-        UserProgress userProgress)
+    private async Task UpdateProgressCacheAsync(UserProgress progress)
     {
-        var taskIds = await _stepTaskDataService.GetTaskIdsForStepAsync(step.Id);
-        var tasks = new List<FlowTask>();
-        foreach (var taskId in taskIds)
-        {
-            var t = await _taskDataService.GetTaskByIdAsync(taskId);
-            if (t != null && t.IsActive)
-                tasks.Add(t);
-        }
-
-        var visibleTasks = await GetVisibleTasksForUserAsync(step, tasks, "", userProgress);
+        var currentProgress = await CalculateCurrentProgressAsync(progress).ConfigureAwait(false);
+        var overallStatus = await CalculateOverallStatusAsync(progress).ConfigureAwait(false);
         
-        if (visibleTasks.Count == 1)
+        var rootSteps = await _flowRepository.GetRootStepsAsync().ConfigureAwait(false);
+        
+        if (!string.IsNullOrEmpty(currentProgress.CurrentStep))
         {
-            return visibleTasks.First();
-        }
-
-        // For multi-task steps, try to identify by payload keys
-        if (step.Name == "Interview")
-        {
-            if (payload.ContainsKey("decision"))
-                return tasks.FirstOrDefault(t => t.Name == "perform_interview");
-            if (payload.ContainsKey("interview_date"))
-                return tasks.FirstOrDefault(t => t.Name == "schedule_interview");
-        }
-
-        if (step.Name == "Sign Contract")
-        {
-            if (payload.ContainsKey("passport_number"))
-                return tasks.FirstOrDefault(t => t.Name == "upload_identification_document");
-            var uploadKey = $"{step.Name}_upload_identification_document";
-            if (userProgress.CompletedTasks.ContainsKey(uploadKey))
-                return tasks.FirstOrDefault(t => t.Name == "sign_contract");
-            return tasks.FirstOrDefault(t => t.Name == "upload_identification_document");
-        }
-
-        if (step.Name == "IQ Test")
-        {
-            if (payload.ContainsKey("score"))
+            var currentStep = rootSteps.FirstOrDefault(s => s.Name == currentProgress.CurrentStep);
+            progress.CurrentStepId = currentStep?.Id;
+            
+            if (!string.IsNullOrEmpty(currentProgress.CurrentTask) && currentStep != null)
             {
-                var firstTestKey = $"{step.Name}_take_iq_test";
-                if (userProgress.CompletedTasks.ContainsKey(firstTestKey))
-                {
-                    if (userProgress.CompletedTasks.TryGetValue(firstTestKey, out var firstTestCompletion))
-                    {
-                        if (firstTestCompletion.Payload != null &&
-                            firstTestCompletion.Payload.TryGetValue("score", out var scoreObj) &&
-                            scoreObj is int firstScore &&
-                            firstScore >= 60 && firstScore <= 75 && !firstTestCompletion.Passed)
-                        {
-                            return tasks.FirstOrDefault(t => t.Name == "take_second_chance_iq_test");
-                        }
-                    }
-                }
-                return tasks.FirstOrDefault(t => t.Name == "take_iq_test");
-            }
-        }
-
-        // Default: return first incomplete visible task
-        foreach (var task in visibleTasks.OrderBy(t => 
-            _stepTaskDataService.GetStepTaskAsync(step.Id, t.Id).Result?.Order ?? 0))
-        {
-            var taskKey = $"{step.Name}_{task.Name}";
-            if (!userProgress.CompletedTasks.ContainsKey(taskKey))
-            {
-                return task;
-            }
-        }
-
-        return visibleTasks.FirstOrDefault();
-    }
-
-    private async Task<List<FlowTask>> GetVisibleTasksForUserAsync(
-        Step step, 
-        List<FlowTask> tasks, 
-        string userId, 
-        UserProgress userProgress)
-    {
-        var visibleTasks = new List<FlowTask>();
-
-        foreach (var task in tasks)
-        {
-            // Check if task is user-specific
-            if (!string.IsNullOrEmpty(userId))
-            {
-                var isUserSpecific = await _userTaskAssignmentDataService.IsTaskAssignedToUserAsync(userId, task.Id);
-                if (isUserSpecific)
-                {
-                    visibleTasks.Add(task);
-                    continue;
-                }
-            }
-
-            // Check conditional visibility
-            if (!string.IsNullOrEmpty(task.ConditionalVisibilityType))
-            {
-                Dictionary<string, object>? contextData = null;
-                
-                if (task.ConditionalVisibilityType == "score_range")
-                {
-                    var relatedTaskKey = userProgress.CompletedTasks.Keys
-                        .FirstOrDefault(k => k.Contains("IQ Test") && k.Contains("take_iq_test"));
-                    
-                    if (relatedTaskKey != null && 
-                        userProgress.CompletedTasks.TryGetValue(relatedTaskKey, out var relatedCompletion))
-                    {
-                        contextData = relatedCompletion.Payload;
-                    }
-                }
-
-                var isVisible = await _conditionEvaluator.EvaluateVisibilityConditionAsync(
-                    task.ConditionalVisibilityType,
-                    task.ConditionalVisibilityConfig,
-                    userId,
-                    contextData);
-
-                if (isVisible)
-                {
-                    visibleTasks.Add(task);
-                }
+                var tasks = await _flowRepository.GetChildNodesAsync(currentStep.Id).ConfigureAwait(false);
+                var currentTask = tasks.FirstOrDefault(t => t.Name == currentProgress.CurrentTask);
+                progress.CurrentTaskId = currentTask?.Id;
             }
             else
             {
-                // Default: show all tasks without conditional visibility
-                visibleTasks.Add(task);
+                progress.CurrentTaskId = null;
+            }
+        }
+        else
+        {
+            progress.CurrentStepId = null;
+            progress.CurrentTaskId = null;
+        }
+        
+        progress.CachedOverallStatus = overallStatus;
+        progress.CacheUpdatedAt = DateTime.UtcNow;
+    }
+
+    private async Task<ProgressStatus> CalculateOverallStatusAsync(UserProgress progress)
+    {
+        var rootSteps = await _flowRepository.GetRootStepsAsync().ConfigureAwait(false);
+        bool allComplete = true;
+
+        foreach (var stepNode in rootSteps)
+        {
+            var tasks = await _flowRepository.GetChildNodesAsync(stepNode.Id).ConfigureAwait(false);
+            var visibleTasks = tasks.Where(t => t.IsVisibleForUser(progress)).ToList();
+
+            foreach (var task in visibleTasks)
+            {
+                var status = progress.NodeStatuses.GetValueOrDefault(task.Id);
+                
+                if (IsRejectionCondition(task, status, progress))
+                {
+                    return ProgressStatus.Rejected;
+                }
+                
+                if (status?.Status != ProgressStatus.Accepted)
+                {
+                    allComplete = false;
+                }
+            }
+
+            if (tasks.Count == 0)
+            {
+                var stepStatus = progress.NodeStatuses.GetValueOrDefault(stepNode.Id);
+                if (stepStatus?.Status == ProgressStatus.Rejected)
+                {
+                    return ProgressStatus.Rejected;
+                }
+                if (stepStatus?.Status != ProgressStatus.Accepted)
+                {
+                    allComplete = false;
+                }
             }
         }
 
-        return visibleTasks;
+        return allComplete ? ProgressStatus.Accepted : ProgressStatus.NotStarted;
+    }
+
+    private bool IsRejectionCondition(FlowNode task, NodeStatus? status, UserProgress progress)
+    {
+        if (status?.Status != ProgressStatus.Rejected)
+            return false;
+
+        if (task.Name.Contains("IQ test", StringComparison.OrdinalIgnoreCase))
+        {
+            if (progress.DerivedFacts.TryGetValue("iq_score", out var scoreObj))
+            {
+                var score = Convert.ToInt32(scoreObj);
+                if (score >= 60 && score <= 75)
+                {
+                    return false;
+                }
+                return score < 60;
+            }
+        }
+
+        if (task.Name.Equals("Perform interview", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return true;
     }
 }

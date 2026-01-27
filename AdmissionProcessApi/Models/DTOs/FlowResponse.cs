@@ -3,6 +3,8 @@ namespace AdmissionProcessApi.Models.DTOs;
 public class FlowResponse
 {
     public List<FlowStepDto> Steps { get; set; } = new();
+    public int TotalSteps { get; set; }
+    public int TotalTasks { get; set; }
 }
 
 public class FlowStepDto

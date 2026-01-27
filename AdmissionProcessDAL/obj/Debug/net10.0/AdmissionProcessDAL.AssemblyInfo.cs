@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute("Data Access Layer for Admission Process - Mock implementations")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e08d9118f787c66b69b78f91562baf3d25418748")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3a00ff7b834279fd535fafd4e6f3dda97a92107a")]
 [assembly: System.Reflection.AssemblyProductAttribute("AdmissionProcessDAL")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AdmissionProcessDAL")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

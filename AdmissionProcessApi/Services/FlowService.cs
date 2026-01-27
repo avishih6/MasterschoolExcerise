@@ -1,134 +1,88 @@
-using AdmissionProcessDAL.Models;
-using AdmissionProcessDAL.Services;
 using AdmissionProcessApi.Models.DTOs;
+using AdmissionProcessDAL.Models;
+using AdmissionProcessDAL.Repositories.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace AdmissionProcessApi.Services;
 
 public class FlowService : IFlowService
 {
-    private readonly IStepDataService _stepDataService;
-    private readonly ITaskDataService _taskDataService;
-    private readonly IStepTaskDataService _stepTaskDataService;
-    private readonly IUserProgressDataService _userProgressDataService;
-    private readonly IUserTaskAssignmentDataService _userTaskAssignmentDataService;
-    private readonly IConditionEvaluator _conditionEvaluator;
+    private readonly IFlowRepository _flowRepository;
+    private readonly IProgressRepository _progressRepository;
+    private readonly ILogger<FlowService> _logger;
 
     public FlowService(
-        IStepDataService stepDataService,
-        ITaskDataService taskDataService,
-        IStepTaskDataService stepTaskDataService,
-        IUserProgressDataService userProgressDataService,
-        IUserTaskAssignmentDataService userTaskAssignmentDataService,
-        IConditionEvaluator conditionEvaluator)
+        IFlowRepository flowRepository,
+        IProgressRepository progressRepository,
+        ILogger<FlowService> logger)
     {
-        _stepDataService = stepDataService;
-        _taskDataService = taskDataService;
-        _stepTaskDataService = stepTaskDataService;
-        _userProgressDataService = userProgressDataService;
-        _userTaskAssignmentDataService = userTaskAssignmentDataService;
-        _conditionEvaluator = conditionEvaluator;
+        _flowRepository = flowRepository;
+        _progressRepository = progressRepository;
+        _logger = logger;
     }
 
-    public async Task<FlowResponse> GetFlowAsync(string? userId = null)
+    public async Task<ServiceResult<FlowResponse>> GetFlowForUserAsync(string userId)
     {
-        var steps = await _stepDataService.GetActiveStepsAsync();
-        var userProgress = userId != null ? await _userProgressDataService.GetUserProgressAsync(userId) : null;
-
-        var response = new FlowResponse
+        try
         {
-            Steps = new List<FlowStepDto>()
-        };
+            var rootSteps = await _flowRepository.GetRootStepsAsync().ConfigureAwait(false);
+            var userProgress = await _progressRepository.GetOrCreateProgressAsync(userId).ConfigureAwait(false);
 
-        foreach (var step in steps)
-        {
-            var taskIds = await _stepTaskDataService.GetTaskIdsForStepAsync(step.Id);
-            var tasks = new List<FlowTask>();
-            
-            foreach (var taskId in taskIds)
+            var steps = new List<FlowStepDto>();
+            int totalVisibleTasks = 0;
+
+            foreach (var stepNode in rootSteps)
             {
-                var task = await _taskDataService.GetTaskByIdAsync(taskId);
-                if (task != null && task.IsActive)
-                {
-                    tasks.Add(task);
-                }
-            }
-
-            var visibleTasks = await GetVisibleTasksAsync(step, tasks, userId, userProgress);
-
-            response.Steps.Add(new FlowStepDto
-            {
-                Name = step.Name,
-                Order = step.Order,
-                Tasks = visibleTasks.Select(t => new FlowTaskDto
-                {
-                    Name = t.Name,
-                    StepName = step.Name
-                }).ToList()
-            });
-        }
-
-        return response;
-    }
-
-    private async Task<List<FlowTask>> GetVisibleTasksAsync(
-        Step step, 
-        List<FlowTask> tasks, 
-        string? userId, 
-        UserProgress? userProgress)
-    {
-        var visibleTasks = new List<FlowTask>();
-
-        foreach (var task in tasks.OrderBy(t => 
-            _stepTaskDataService.GetStepTaskAsync(step.Id, t.Id).Result?.Order ?? 0))
-        {
-            // Check if task is user-specific
-            if (!string.IsNullOrEmpty(userId))
-            {
-                var isUserSpecific = await _userTaskAssignmentDataService.IsTaskAssignedToUserAsync(userId, task.Id);
-                if (isUserSpecific)
-                {
-                    visibleTasks.Add(task);
-                    continue;
-                }
-            }
-
-            // Check conditional visibility
-            if (!string.IsNullOrEmpty(task.ConditionalVisibilityType) && userProgress != null)
-            {
-                Dictionary<string, object>? contextData = null;
+                var stepTasks = await _flowRepository.GetChildNodesAsync(stepNode.Id).ConfigureAwait(false);
+                var visibleTasks = BuildVisibleTasksListForStep(stepNode, stepTasks, userProgress);
                 
-                // For score_range visibility, get context from user progress
-                if (task.ConditionalVisibilityType == "score_range")
+                totalVisibleTasks += visibleTasks.Count;
+                
+                if (stepTasks.Count == 0)
                 {
-                    // Find related task completion for context
-                    var relatedTaskKey = userProgress.CompletedTasks.Keys
-                        .FirstOrDefault(k => k.Contains("IQ Test") && k.Contains("take_iq_test"));
-                    
-                    if (relatedTaskKey != null && 
-                        userProgress.CompletedTasks.TryGetValue(relatedTaskKey, out var relatedCompletion))
-                    {
-                        contextData = relatedCompletion.Payload;
-                    }
+                    totalVisibleTasks++;
                 }
 
-                var isVisible = await _conditionEvaluator.EvaluateVisibilityConditionAsync(
-                    task.ConditionalVisibilityType,
-                    task.ConditionalVisibilityConfig,
-                    userId ?? "",
-                    contextData);
-
-                if (isVisible)
+                steps.Add(new FlowStepDto
                 {
-                    visibleTasks.Add(task);
-                }
+                    Name = stepNode.Name,
+                    Order = stepNode.Order,
+                    Tasks = visibleTasks
+                });
             }
-            else
+
+            var response = new FlowResponse
             {
-                // Default: show all tasks without conditional visibility
-                visibleTasks.Add(task);
+                Steps = steps,
+                TotalSteps = rootSteps.Count,
+                TotalTasks = totalVisibleTasks
+            };
+
+            return ServiceResult<FlowResponse>.Success(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving flow for user: {UserId}", userId);
+            return ServiceResult<FlowResponse>.Failure("An error occurred while retrieving the flow");
+        }
+    }
+
+    private List<FlowTaskDto> BuildVisibleTasksListForStep(FlowNode stepNode, List<FlowNode> tasks, UserProgress userProgress)
+    {
+        var visibleTasks = new List<FlowTaskDto>();
+        
+        foreach (var task in tasks)
+        {
+            if (task.IsVisibleForUser(userProgress))
+            {
+                visibleTasks.Add(new FlowTaskDto
+                {
+                    Name = task.Name,
+                    StepName = stepNode.Name
+                });
             }
         }
-
+        
         return visibleTasks;
     }
 }

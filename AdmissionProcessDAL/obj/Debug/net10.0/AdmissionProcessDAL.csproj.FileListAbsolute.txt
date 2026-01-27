@@ -11,8 +11,4 @@
 /Users/avishayhadar/Repos/AdmissionProcessDAL/obj/Debug/net10.0/refint/AdmissionProcessDAL.dll
 /Users/avishayhadar/Repos/AdmissionProcessDAL/obj/Debug/net10.0/AdmissionProcessDAL.pdb
 /Users/avishayhadar/Repos/AdmissionProcessDAL/obj/Debug/net10.0/ref/AdmissionProcessDAL.dll
-/Users/avishayhadar/Repos/AdmissionProcessDAL/bin/Debug/net10.0/xunit.runner.visualstudio.dotnetcore.testadapter.dll
-/Users/avishayhadar/Repos/AdmissionProcessDAL/bin/Debug/net10.0/xunit.runner.reporters.netcoreapp10.dll
-/Users/avishayhadar/Repos/AdmissionProcessDAL/bin/Debug/net10.0/xunit.runner.utility.netcoreapp10.dll
-/Users/avishayhadar/Repos/AdmissionProcessDAL/bin/Debug/net10.0/AdmissionProcessDAL.runtimeconfig.json
-/Users/avishayhadar/Repos/AdmissionProcessDAL/obj/Debug/net10.0/AdmissionProcessDAL.genruntimeconfig.cache
+/Users/avishayhadar/Repos/AdmissionProcessDAL/bin/Debug/net10.0/Configuration/flow-config.json

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AdmissionProcessModels")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+40fd5a15505668ef9c03b2591643d96c60e1b282")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5aa9b4fdd10bf99c6cb1284aa84d80840eb1f565")]
 [assembly: System.Reflection.AssemblyProductAttribute("AdmissionProcessModels")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AdmissionProcessModels")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

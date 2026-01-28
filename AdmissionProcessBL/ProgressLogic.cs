@@ -235,7 +235,7 @@ public class ProgressLogic : IProgressLogic
             return CheckStepWithoutTasks(stepNode, userProgress);
         }
 
-        return CheckStepWithTasks(stepNode, visibleTasks, userProgress);
+        return CheckStepWithTasks(stepNode, visibleTasks, tasks, userProgress);
     }
 
     private CurrentProgressResponse? CheckStepWithoutTasks(FlowNode stepNode, UserProgress userProgress)
@@ -248,7 +248,7 @@ public class ProgressLogic : IProgressLogic
         return null;
     }
 
-    private CurrentProgressResponse? CheckStepWithTasks(FlowNode stepNode, List<FlowNode> visibleTasks, UserProgress userProgress)
+    private CurrentProgressResponse? CheckStepWithTasks(FlowNode stepNode, List<FlowNode> visibleTasks, List<FlowNode> allTasks, UserProgress userProgress)
     {
         // If no visible tasks, check if step itself is complete
         if (visibleTasks.Count == 0)
@@ -263,8 +263,9 @@ public class ProgressLogic : IProgressLogic
 
         foreach (var task in visibleTasks.OrderBy(t => t.Order))
         {
-            var taskStatus = userProgress.NodeStatuses.GetValueOrDefault(task.Id);
-            if (taskStatus?.Status != ProgressStatus.Accepted)
+            var taskResult = GetTaskEffectiveResult(task, userProgress, allTasks);
+            
+            if (taskResult != TaskResult.Complete)
             {
                 return new CurrentProgressResponse { CurrentStep = stepNode.Name, CurrentTask = task.Name };
             }
@@ -359,38 +360,61 @@ public class ProgressLogic : IProgressLogic
 
         foreach (var task in visibleTasks)
         {
-            var status = progress.NodeStatuses.GetValueOrDefault(task.Id);
+            var taskResult = GetTaskEffectiveResult(task, progress, tasks);
             
-            if (IsRejectionCondition(task, status, progress))
+            if (taskResult == TaskResult.FinalRejection)
                 return (true, false);
             
-            if (status?.Status != ProgressStatus.Accepted)
+            if (taskResult != TaskResult.Complete)
                 return (false, false);
         }
 
         return (false, true);
     }
 
-    private bool IsRejectionCondition(FlowNode task, NodeStatus? status, UserProgress progress)
+    /// <summary>
+    /// Determines the effective result of a task, considering any recovery tasks.
+    /// Recovery tasks are identified by RequiresPreviousTaskFailedId pointing to this task.
+    /// </summary>
+    private TaskResult GetTaskEffectiveResult(FlowNode task, UserProgress progress, List<FlowNode> allTasks)
     {
-        if (status?.Status != ProgressStatus.Rejected)
-            return false;
-
-        if (IsIqTestWithSecondChance(task, progress))
-            return false;
-
-        return true;
+        var status = progress.NodeStatuses.GetValueOrDefault(task.Id);
+        
+        // Not attempted yet
+        if (status == null)
+            return TaskResult.NotCompleted;
+        
+        // Passed
+        if (status.Status == ProgressStatus.Accepted)
+            return TaskResult.Complete;
+        
+        // Failed - check for recovery task (any task with RequiresPreviousTaskFailedId = this task's ID)
+        var recoveryTask = allTasks.FirstOrDefault(t => t.RequiresPreviousTaskFailedId == task.Id);
+        
+        if (recoveryTask == null)
+            return TaskResult.FinalRejection; // No recovery option exists
+        
+        // Check recovery task status
+        if (progress.NodeStatuses.TryGetValue(recoveryTask.Id, out var recoveryStatus))
+        {
+            // Recovery was attempted
+            return recoveryStatus.Status == ProgressStatus.Accepted 
+                ? TaskResult.Complete      // Recovered successfully
+                : TaskResult.FinalRejection; // Recovery also failed
+        }
+        
+        // Recovery task exists but not attempted - check if it's available
+        if (recoveryTask.IsVisibleForUser(progress))
+            return TaskResult.PendingRecovery; // Can still recover
+        
+        return TaskResult.FinalRejection; // Recovery not available (visibility condition not met)
     }
 
-    private bool IsIqTestWithSecondChance(FlowNode task, UserProgress progress)
+    private enum TaskResult
     {
-        if (!task.Name.Contains("IQ test", StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        if (!progress.DerivedFacts.TryGetValue("iq_score", out var scoreObj))
-            return false;
-
-        var score = Convert.ToInt32(scoreObj);
-        return score >= 60 && score <= 75;
+        NotCompleted,     // Task not yet attempted
+        Complete,         // Task passed (or recovered)
+        PendingRecovery,  // Task failed but recovery is available
+        FinalRejection    // Task failed with no recovery option
     }
 }

@@ -1,5 +1,5 @@
-using AdmissionProcessBL.Services;
-using AdmissionProcessBL.Services.Interfaces;
+using AdmissionProcessBL;
+using AdmissionProcessBL.Interfaces;
 using AdmissionProcessDAL.Repositories.Interfaces;
 using AdmissionProcessDAL.Repositories.Mock;
 
@@ -13,10 +13,10 @@ builder.Services.AddSingleton<IUserRepository, MockUserRepository>();
 builder.Services.AddSingleton<IFlowRepository, MockFlowRepository>();
 builder.Services.AddSingleton<IProgressRepository, MockProgressRepository>();
 
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IFlowService, FlowService>();
-builder.Services.AddScoped<IProgressService, ProgressService>();
-builder.Services.AddScoped<IStatusService, StatusService>();
+builder.Services.AddScoped<IUserLogic, UserLogic>();
+builder.Services.AddScoped<IFlowLogic, FlowLogic>();
+builder.Services.AddScoped<IProgressLogic, ProgressLogic>();
+builder.Services.AddScoped<IStatusLogic, StatusLogic>();
 builder.Services.AddSingleton<IPassEvaluator, PassEvaluator>();
 
 var app = builder.Build();

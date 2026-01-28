@@ -1,6 +1,6 @@
 using AdmissionProcessApi.DTOs;
-using AdmissionProcessBL.Services;
-using AdmissionProcessBL.Services.Interfaces;
+using AdmissionProcessBL;
+using AdmissionProcessBL.Interfaces;
 using AdmissionProcessModels.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,25 +10,25 @@ namespace AdmissionProcessApi.Controllers;
 [Route("api/[controller]")]
 public class UsersController : ControllerBase
 {
-    private readonly IUserService _userService;
-    private readonly IStatusService _statusService;
+    private readonly IUserLogic _userLogic;
+    private readonly IStatusLogic _statusLogic;
     private readonly ILogger<UsersController> _logger;
 
     public UsersController(
-        IUserService userService, 
-        IStatusService statusService,
+        IUserLogic userLogic, 
+        IStatusLogic statusLogic,
         ILogger<UsersController> logger)
     {
-        _userService = userService;
-        _statusService = statusService;
+        _userLogic = userLogic;
+        _statusLogic = statusLogic;
         _logger = logger;
     }
 
-    // 1
+    // 0
     [HttpPost("CreateUser")]
     public async Task<IActionResult> CreateUserAsync([FromBody] CreateUserRequest request)
     {
-        var result = await _userService.CreateUserAsync(request.Email).ConfigureAwait(false);
+        var result = await _userLogic.CreateUserAsync(request.Email).ConfigureAwait(false);
         
         if (!result.IsSuccess)
         {
@@ -49,11 +49,11 @@ public class UsersController : ControllerBase
         return Ok(result.Data);
     }
 
-    // 5
+    // 4
     [HttpGet("{userId}/GetUserStatus")]
     public async Task<IActionResult> GetUserStatusAsync(string userId)
     {
-        var result = await _statusService.GetUserStatusAsync(userId).ConfigureAwait(false);
+        var result = await _statusLogic.GetUserStatusAsync(userId).ConfigureAwait(false);
         
         if (!result.IsSuccess)
         {

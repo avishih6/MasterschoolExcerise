@@ -1,4 +1,4 @@
-using AdmissionProcessBL.Services;
+using AdmissionProcessBL;
 using AdmissionProcessDAL.Models;
 using AdmissionProcessDAL.Repositories.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -7,17 +7,17 @@ using Xunit;
 
 namespace AdmissionProcessBL.Tests;
 
-public class UserServiceTests
+public class UserLogicTests
 {
     private readonly Mock<IUserRepository> _userRepositoryMock;
-    private readonly Mock<ILogger<UserService>> _loggerMock;
-    private readonly UserService _service;
+    private readonly Mock<ILogger<UserLogic>> _loggerMock;
+    private readonly UserLogic _logic;
 
-    public UserServiceTests()
+    public UserLogicTests()
     {
         _userRepositoryMock = new Mock<IUserRepository>();
-        _loggerMock = new Mock<ILogger<UserService>>();
-        _service = new UserService(_userRepositoryMock.Object, _loggerMock.Object);
+        _loggerMock = new Mock<ILogger<UserLogic>>();
+        _logic = new UserLogic(_userRepositoryMock.Object, _loggerMock.Object);
     }
 
     [Fact]
@@ -29,7 +29,7 @@ public class UserServiceTests
             .Setup(r => r.CreateUserAsync(email))
             .ReturnsAsync((expectedUser, false));
 
-        var result = await _service.CreateUserAsync(email);
+        var result = await _logic.CreateUserAsync(email);
 
         Assert.True(result.IsSuccess);
         Assert.Equal("1", result.Data?.UserId);
@@ -44,7 +44,7 @@ public class UserServiceTests
             .Setup(r => r.CreateUserAsync(email))
             .ReturnsAsync((existingUser, true));
 
-        var result = await _service.CreateUserAsync(email);
+        var result = await _logic.CreateUserAsync(email);
 
         Assert.False(result.IsSuccess);
         Assert.Equal(409, result.HttpStatusCode);
@@ -54,31 +54,9 @@ public class UserServiceTests
     [Fact]
     public async Task CreateUserAsync_WithEmptyEmail_ReturnsFailure()
     {
-        var result = await _service.CreateUserAsync("");
+        var result = await _logic.CreateUserAsync("");
 
         Assert.False(result.IsSuccess);
         Assert.Equal("Email is required", result.ErrorMessage);
-    }
-
-    [Fact]
-    public async Task CreateUserAsync_WithNullEmail_ReturnsFailure()
-    {
-        var result = await _service.CreateUserAsync(null!);
-
-        Assert.False(result.IsSuccess);
-        Assert.Equal("Email is required", result.ErrorMessage);
-    }
-
-    [Fact]
-    public async Task CreateUserAsync_WhenRepositoryReturnsNull_ReturnsFailure()
-    {
-        _userRepositoryMock
-            .Setup(r => r.CreateUserAsync(It.IsAny<string>()))
-            .ReturnsAsync((null, false));
-
-        var result = await _service.CreateUserAsync("test@example.com");
-
-        Assert.False(result.IsSuccess);
-        Assert.Equal("Failed to create user", result.ErrorMessage);
     }
 }

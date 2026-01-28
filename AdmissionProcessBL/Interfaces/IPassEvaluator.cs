@@ -1,6 +1,6 @@
 using AdmissionProcessDAL.Models;
 
-namespace AdmissionProcessBL.Services.Interfaces;
+namespace AdmissionProcessBL.Interfaces;
 
 public interface IPassEvaluator
 {

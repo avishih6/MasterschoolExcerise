@@ -247,24 +247,24 @@ public class MockFlowRepository : IFlowRepository
     {
         return new List<StepConfiguration>
         {
-            new() { NodeId = 1, Tasks = new List<TaskConfiguration> { new() { NodeId = 10, PayloadIdentifiers = new List<string> { "first_name", "last_name", "email" } } } },
+            new() { NodeId = 1, Tasks = new List<TaskConfiguration> { new() { NodeId = 10, PayloadIdentifiers = new List<string> { "first_name", "last_name", "email", "timestamp" } } } },
             new() { NodeId = 2, Tasks = new List<TaskConfiguration>
             {
-                new() { NodeId = 20, PassCondition = new PassCondition { Type = ConditionTypes.ScoreThreshold, Field = "score", Threshold = 75 }, PayloadIdentifiers = new List<string> { "score", "test_id" }, DerivedFactsToStore = new List<DerivedFactMapping> { new() { SourceField = "score", TargetFactName = "iq_score" } } },
-                new() { NodeId = 21, VisibilityCondition = new VisibilityCondition { Type = ConditionTypes.ScoreRange, Field = "iq_score", Min = 60, Max = 75 }, PassCondition = new PassCondition { Type = ConditionTypes.ScoreThreshold, Field = "score", Threshold = 75 }, PayloadIdentifiers = new List<string> { "score" }, RequiresPreviousTaskFailedId = 20, DerivedFactsToStore = new List<DerivedFactMapping> { new() { SourceField = "score", TargetFactName = "iq_score" } } }
+                new() { NodeId = 20, PassCondition = new Condition { Type = ConditionTypes.ScoreThreshold, Field = "score", Threshold = 75 }, PayloadIdentifiers = new List<string> { "test_id", "score", "timestamp" }, DerivedFactsToStore = new List<DerivedFactMapping> { new() { SourceField = "score", TargetFactName = "iq_score" } } },
+                new() { NodeId = 21, VisibilityCondition = new Condition { Type = ConditionTypes.ScoreRange, Field = "iq_score", Min = 60, Max = 75 }, PassCondition = new Condition { Type = ConditionTypes.ScoreThreshold, Field = "score", Threshold = 75 }, PayloadIdentifiers = new List<string> { "score", "timestamp" }, RequiresPreviousTaskFailedId = 20, DerivedFactsToStore = new List<DerivedFactMapping> { new() { SourceField = "score", TargetFactName = "iq_score" } } }
             } },
             new() { NodeId = 3, Tasks = new List<TaskConfiguration>
             {
                 new() { NodeId = 30, PayloadIdentifiers = new List<string> { "interview_date" } },
-                new() { NodeId = 31, PassCondition = new PassCondition { Type = ConditionTypes.DecisionEquals, Field = "decision", ExpectedValue = "passed_interview" }, PayloadIdentifiers = new List<string> { "decision", "interviewer_id" } }
+                new() { NodeId = 31, PassCondition = new Condition { Type = ConditionTypes.DecisionEquals, Field = "decision", ExpectedValue = "passed_interview" }, PayloadIdentifiers = new List<string> { "interview_date", "interviewer_id", "decision" } }
             } },
             new() { NodeId = 4, Tasks = new List<TaskConfiguration>
             {
-                new() { NodeId = 40, PayloadIdentifiers = new List<string> { "passport_number" } },
-                new() { NodeId = 41, PayloadIdentifiers = new List<string> { "signature", "contract_signed" } }
+                new() { NodeId = 40, PayloadIdentifiers = new List<string> { "passport_number", "timestamp" } },
+                new() { NodeId = 41, PayloadIdentifiers = new List<string> { "timestamp" } }
             } },
-            new() { NodeId = 5, Tasks = new List<TaskConfiguration> { new() { NodeId = 50, PayloadIdentifiers = new List<string> { "payment_id" } } } },
-            new() { NodeId = 6, Tasks = new List<TaskConfiguration> { new() { NodeId = 60, PayloadIdentifiers = new List<string> { "slack_email", "slack_joined" } } } }
+            new() { NodeId = 5, Tasks = new List<TaskConfiguration> { new() { NodeId = 50, PayloadIdentifiers = new List<string> { "payment_id", "timestamp" } } } },
+            new() { NodeId = 6, Tasks = new List<TaskConfiguration> { new() { NodeId = 60, PayloadIdentifiers = new List<string> { "email", "timestamp" } } } }
         };
     }
 

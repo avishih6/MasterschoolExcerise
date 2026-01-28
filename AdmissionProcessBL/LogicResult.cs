@@ -1,26 +1,26 @@
-namespace AdmissionProcessBL.Services;
+namespace AdmissionProcessBL;
 
-public class ServiceResult<T>
+public class LogicResult<T>
 {
     public bool IsSuccess { get; private set; }
     public T? Data { get; private set; }
     public string? ErrorMessage { get; private set; }
     public int? HttpStatusCode { get; private set; }
 
-    private ServiceResult() { }
+    private LogicResult() { }
 
-    public static ServiceResult<T> Success(T data)
+    public static LogicResult<T> Success(T data)
     {
-        return new ServiceResult<T>
+        return new LogicResult<T>
         {
             IsSuccess = true,
             Data = data
         };
     }
 
-    public static ServiceResult<T> Failure(string errorMessage, int httpStatusCode = 400)
+    public static LogicResult<T> Failure(string errorMessage, int httpStatusCode = 400)
     {
-        return new ServiceResult<T>
+        return new LogicResult<T>
         {
             IsSuccess = false,
             ErrorMessage = errorMessage,
@@ -28,9 +28,9 @@ public class ServiceResult<T>
         };
     }
 
-    public static ServiceResult<T> Conflict(string errorMessage, T? existingData = default)
+    public static LogicResult<T> Conflict(string errorMessage, T? existingData = default)
     {
-        return new ServiceResult<T>
+        return new LogicResult<T>
         {
             IsSuccess = false,
             ErrorMessage = errorMessage,
@@ -40,22 +40,22 @@ public class ServiceResult<T>
     }
 }
 
-public class ServiceResult
+public class LogicResult
 {
     public bool IsSuccess { get; private set; }
     public string? ErrorMessage { get; private set; }
     public int? HttpStatusCode { get; private set; }
 
-    private ServiceResult() { }
+    private LogicResult() { }
 
-    public static ServiceResult Success()
+    public static LogicResult Success()
     {
-        return new ServiceResult { IsSuccess = true };
+        return new LogicResult { IsSuccess = true };
     }
 
-    public static ServiceResult Failure(string errorMessage, int httpStatusCode = 400)
+    public static LogicResult Failure(string errorMessage, int httpStatusCode = 400)
     {
-        return new ServiceResult
+        return new LogicResult
         {
             IsSuccess = false,
             ErrorMessage = errorMessage,

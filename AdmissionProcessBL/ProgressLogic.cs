@@ -1,24 +1,24 @@
-using AdmissionProcessBL.Services.Interfaces;
+using AdmissionProcessBL.Interfaces;
 using AdmissionProcessDAL.Models;
 using AdmissionProcessDAL.Repositories.Interfaces;
 using AdmissionProcessModels.DTOs;
 using AdmissionProcessModels.Enums;
 using Microsoft.Extensions.Logging;
 
-namespace AdmissionProcessBL.Services;
+namespace AdmissionProcessBL;
 
-public class ProgressService : IProgressService
+public class ProgressLogic : IProgressLogic
 {
     private readonly IFlowRepository _flowRepository;
     private readonly IProgressRepository _progressRepository;
     private readonly IPassEvaluator _passEvaluator;
-    private readonly ILogger<ProgressService> _logger;
+    private readonly ILogger<ProgressLogic> _logger;
 
-    public ProgressService(
+    public ProgressLogic(
         IFlowRepository flowRepository,
         IProgressRepository progressRepository,
         IPassEvaluator passEvaluator,
-        ILogger<ProgressService> logger)
+        ILogger<ProgressLogic> logger)
     {
         _flowRepository = flowRepository;
         _progressRepository = progressRepository;
@@ -26,23 +26,23 @@ public class ProgressService : IProgressService
         _logger = logger;
     }
 
-    public async Task<ServiceResult<CurrentProgressResponse>> GetCurrentStepAndTaskForUserAsync(string userId)
+    public async Task<LogicResult<CurrentProgressResponse>> GetCurrentStepAndTaskForUserAsync(string userId)
     {
         try
         {
             var userProgress = await _progressRepository.GetOrCreateProgressAsync(userId).ConfigureAwait(false);
             var currentProgress = await CalculateCurrentProgressAsync(userProgress).ConfigureAwait(false);
             
-            return ServiceResult<CurrentProgressResponse>.Success(currentProgress);
+            return LogicResult<CurrentProgressResponse>.Success(currentProgress);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"GetCurrentStepAndTaskForUserAsync failed for user {userId}");
-            return ServiceResult<CurrentProgressResponse>.Failure("An error occurred while retrieving progress");
+            return LogicResult<CurrentProgressResponse>.Failure("An error occurred while retrieving progress");
         }
     }
 
-    public async Task<ServiceResult> CompleteStepAsync(string userId, string stepName, Dictionary<string, object> payload)
+    public async Task<LogicResult> CompleteStepAsync(string userId, string stepName, Dictionary<string, object> payload)
     {
         try
         {
@@ -50,7 +50,7 @@ public class ProgressService : IProgressService
             if (stepNode == null)
             {
                 _logger.LogError($"CompleteStepAsync failed: step '{stepName}' not found");
-                return ServiceResult.Failure($"Step '{stepName}' not found", 404);
+                return LogicResult.Failure($"Step '{stepName}' not found", 404);
             }
 
             var userProgress = await _progressRepository.GetOrCreateProgressAsync(userId).ConfigureAwait(false);
@@ -69,12 +69,12 @@ public class ProgressService : IProgressService
             await _progressRepository.SaveProgressAsync(userProgress).ConfigureAwait(false);
 
             _logger.LogInformation($"CompleteStepAsync: step '{stepName}' completed for user {userId}");
-            return ServiceResult.Success();
+            return LogicResult.Success();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"CompleteStepAsync failed for step '{stepName}' and user {userId}");
-            return ServiceResult.Failure("An error occurred while completing the step");
+            return LogicResult.Failure("An error occurred while completing the step");
         }
     }
 

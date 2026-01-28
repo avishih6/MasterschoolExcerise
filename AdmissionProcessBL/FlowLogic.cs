@@ -1,29 +1,29 @@
-using AdmissionProcessBL.Services.Interfaces;
+using AdmissionProcessBL.Interfaces;
 using AdmissionProcessDAL.Models;
 using AdmissionProcessDAL.Repositories.Interfaces;
 using AdmissionProcessModels.DTOs;
 using AdmissionProcessModels.Enums;
 using Microsoft.Extensions.Logging;
 
-namespace AdmissionProcessBL.Services;
+namespace AdmissionProcessBL;
 
-public class FlowService : IFlowService
+public class FlowLogic : IFlowLogic
 {
     private readonly IFlowRepository _flowRepository;
     private readonly IProgressRepository _progressRepository;
-    private readonly ILogger<FlowService> _logger;
+    private readonly ILogger<FlowLogic> _logger;
 
-    public FlowService(
+    public FlowLogic(
         IFlowRepository flowRepository,
         IProgressRepository progressRepository,
-        ILogger<FlowService> logger)
+        ILogger<FlowLogic> logger)
     {
         _flowRepository = flowRepository;
         _progressRepository = progressRepository;
         _logger = logger;
     }
 
-    public async Task<ServiceResult<FlowResponse>> GetEntireFlowForUserAsync(string userId)
+    public async Task<LogicResult<FlowResponse>> GetEntireFlowForUserAsync(string userId)
     {
         try
         {
@@ -31,12 +31,12 @@ public class FlowService : IFlowService
             var response = BuildFlowResponse(rootSteps, userProgress);
             await EnrichWithCurrentPositionAsync(response, rootSteps, userProgress).ConfigureAwait(false);
             
-            return ServiceResult<FlowResponse>.Success(response);
+            return LogicResult<FlowResponse>.Success(response);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"GetEntireFlowForUserAsync failed for user {userId}");
-            return ServiceResult<FlowResponse>.Failure("An error occurred while retrieving the flow");
+            return LogicResult<FlowResponse>.Failure("An error occurred while retrieving the flow");
         }
     }
 

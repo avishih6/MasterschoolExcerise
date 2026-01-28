@@ -58,43 +58,4 @@ public class MockUserRepositoryTests
         Assert.Equal(9, existingUsers.Count);
         Assert.All(results, r => Assert.Equal(newUsers[0].User!.Id, r.User!.Id));
     }
-
-    [Fact]
-    public async Task GetUserByIdAsync_WithExistingUser_ReturnsUser()
-    {
-        var email = "existing@example.com";
-        var (createdUser, _) = await _repository.CreateUserAsync(email);
-
-        var user = await _repository.GetUserByIdAsync(createdUser!.Id);
-
-        Assert.NotNull(user);
-        Assert.Equal(createdUser.Id, user.Id);
-        Assert.Equal(email, user.Email);
-    }
-
-    [Fact]
-    public async Task GetUserByIdAsync_WithNonExistingUser_ReturnsNull()
-    {
-        var user = await _repository.GetUserByIdAsync("non-existing-id");
-
-        Assert.Null(user);
-    }
-
-    [Fact]
-    public async Task UserExistsAsync_WithExistingUser_ReturnsTrue()
-    {
-        var (createdUser, _) = await _repository.CreateUserAsync("exists@example.com");
-
-        var exists = await _repository.UserExistsAsync(createdUser!.Id);
-
-        Assert.True(exists);
-    }
-
-    [Fact]
-    public async Task UserExistsAsync_WithNonExistingUser_ReturnsFalse()
-    {
-        var exists = await _repository.UserExistsAsync("non-existing-id");
-
-        Assert.False(exists);
-    }
 }

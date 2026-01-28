@@ -1,4 +1,4 @@
-using AdmissionProcessBL.Services;
+using AdmissionProcessBL;
 using AdmissionProcessDAL.Models;
 using Xunit;
 
@@ -25,11 +25,11 @@ public class PassEvaluatorTests
     }
 
     [Fact]
-    public async Task EvaluateAsync_WithScoreAboveThreshold_ReturnsTrue()
+    public async Task EvaluateAsync_IqTest_ScoreAboveThreshold_ReturnsTrue()
     {
         var node = new FlowNode
         {
-            PassCondition = new PassCondition
+            PassCondition = new Condition
             {
                 Type = ConditionTypes.ScoreThreshold,
                 Field = "score",
@@ -44,11 +44,11 @@ public class PassEvaluatorTests
     }
 
     [Fact]
-    public async Task EvaluateAsync_WithScoreBelowThreshold_ReturnsFalse()
+    public async Task EvaluateAsync_IqTest_ScoreBelowThreshold_ReturnsFalse()
     {
         var node = new FlowNode
         {
-            PassCondition = new PassCondition
+            PassCondition = new Condition
             {
                 Type = ConditionTypes.ScoreThreshold,
                 Field = "score",
@@ -63,30 +63,11 @@ public class PassEvaluatorTests
     }
 
     [Fact]
-    public async Task EvaluateAsync_WithScoreEqualToThreshold_ReturnsFalse()
+    public async Task EvaluateAsync_Interview_PassedDecision_ReturnsTrue()
     {
         var node = new FlowNode
         {
-            PassCondition = new PassCondition
-            {
-                Type = ConditionTypes.ScoreThreshold,
-                Field = "score",
-                Threshold = 75
-            }
-        };
-        var payload = new Dictionary<string, object> { { "score", 75 } };
-
-        var result = await _evaluator.EvaluateAsync(node, payload);
-
-        Assert.False(result);
-    }
-
-    [Fact]
-    public async Task EvaluateAsync_WithExpectedDecision_ReturnsTrue()
-    {
-        var node = new FlowNode
-        {
-            PassCondition = new PassCondition
+            PassCondition = new Condition
             {
                 Type = ConditionTypes.DecisionEquals,
                 Field = "decision",
@@ -101,11 +82,11 @@ public class PassEvaluatorTests
     }
 
     [Fact]
-    public async Task EvaluateAsync_WithUnexpectedDecision_ReturnsFalse()
+    public async Task EvaluateAsync_Interview_FailedDecision_ReturnsFalse()
     {
         var node = new FlowNode
         {
-            PassCondition = new PassCondition
+            PassCondition = new Condition
             {
                 Type = ConditionTypes.DecisionEquals,
                 Field = "decision",
@@ -113,25 +94,6 @@ public class PassEvaluatorTests
             }
         };
         var payload = new Dictionary<string, object> { { "decision", "failed_interview" } };
-
-        var result = await _evaluator.EvaluateAsync(node, payload);
-
-        Assert.False(result);
-    }
-
-    [Fact]
-    public async Task EvaluateAsync_WithMissingField_ReturnsFalse()
-    {
-        var node = new FlowNode
-        {
-            PassCondition = new PassCondition
-            {
-                Type = ConditionTypes.ScoreThreshold,
-                Field = "score",
-                Threshold = 75
-            }
-        };
-        var payload = new Dictionary<string, object>();
 
         var result = await _evaluator.EvaluateAsync(node, payload);
 

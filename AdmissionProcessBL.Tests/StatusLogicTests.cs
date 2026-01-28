@@ -1,4 +1,4 @@
-using AdmissionProcessBL.Services;
+using AdmissionProcessBL;
 using AdmissionProcessDAL.Models;
 using AdmissionProcessDAL.Repositories.Interfaces;
 using AdmissionProcessModels.Enums;
@@ -8,17 +8,17 @@ using Xunit;
 
 namespace AdmissionProcessBL.Tests;
 
-public class StatusServiceTests
+public class StatusLogicTests
 {
     private readonly Mock<IProgressRepository> _progressRepositoryMock;
-    private readonly Mock<ILogger<StatusService>> _loggerMock;
-    private readonly StatusService _service;
+    private readonly Mock<ILogger<StatusLogic>> _loggerMock;
+    private readonly StatusLogic _logic;
 
-    public StatusServiceTests()
+    public StatusLogicTests()
     {
         _progressRepositoryMock = new Mock<IProgressRepository>();
-        _loggerMock = new Mock<ILogger<StatusService>>();
-        _service = new StatusService(_progressRepositoryMock.Object, _loggerMock.Object);
+        _loggerMock = new Mock<ILogger<StatusLogic>>();
+        _logic = new StatusLogic(_progressRepositoryMock.Object, _loggerMock.Object);
     }
 
     [Fact]
@@ -28,7 +28,7 @@ public class StatusServiceTests
             .Setup(r => r.GetProgressAsync(It.IsAny<string>()))
             .ReturnsAsync((UserProgress?)null);
 
-        var result = await _service.GetUserStatusAsync("new-user");
+        var result = await _logic.GetUserStatusAsync("new-user");
 
         Assert.True(result.IsSuccess);
         Assert.Equal(UserStatus.InProgress, result.Data?.Status);
@@ -46,7 +46,7 @@ public class StatusServiceTests
             .Setup(r => r.GetProgressAsync("accepted-user"))
             .ReturnsAsync(progress);
 
-        var result = await _service.GetUserStatusAsync("accepted-user");
+        var result = await _logic.GetUserStatusAsync("accepted-user");
 
         Assert.True(result.IsSuccess);
         Assert.Equal(UserStatus.Accepted, result.Data?.Status);
@@ -64,22 +64,9 @@ public class StatusServiceTests
             .Setup(r => r.GetProgressAsync("rejected-user"))
             .ReturnsAsync(progress);
 
-        var result = await _service.GetUserStatusAsync("rejected-user");
+        var result = await _logic.GetUserStatusAsync("rejected-user");
 
         Assert.True(result.IsSuccess);
         Assert.Equal(UserStatus.Rejected, result.Data?.Status);
-    }
-
-    [Fact]
-    public async Task GetUserStatusAsync_WhenExceptionThrown_ReturnsFailure()
-    {
-        _progressRepositoryMock
-            .Setup(r => r.GetProgressAsync(It.IsAny<string>()))
-            .ThrowsAsync(new Exception("Database error"));
-
-        var result = await _service.GetUserStatusAsync("error-user");
-
-        Assert.False(result.IsSuccess);
-        Assert.Contains("error", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
     }
 }

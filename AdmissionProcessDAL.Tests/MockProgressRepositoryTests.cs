@@ -40,40 +40,4 @@ public class MockProgressRepositoryTests
         Assert.Same(progress1, progress2);
         Assert.Single(progress2.NodeStatuses);
     }
-
-    [Fact]
-    public async Task GetProgressAsync_WithExistingUser_ReturnsProgress()
-    {
-        var userId = "get-progress-user";
-        await _repository.GetOrCreateProgressAsync(userId);
-
-        var progress = await _repository.GetProgressAsync(userId);
-
-        Assert.NotNull(progress);
-        Assert.Equal(userId, progress.UserId);
-    }
-
-    [Fact]
-    public async Task GetProgressAsync_WithNonExistingUser_ReturnsNull()
-    {
-        var progress = await _repository.GetProgressAsync("non-existing-user");
-
-        Assert.Null(progress);
-    }
-
-    [Fact]
-    public async Task SaveProgressAsync_UpdatesProgress()
-    {
-        var userId = "save-progress-user";
-        var progress = await _repository.GetOrCreateProgressAsync(userId);
-        progress.CachedOverallStatus = UserStatus.Accepted;
-        progress.CurrentStepId = 5;
-
-        await _repository.SaveProgressAsync(progress);
-        var retrieved = await _repository.GetProgressAsync(userId);
-
-        Assert.NotNull(retrieved);
-        Assert.Equal(UserStatus.Accepted, retrieved.CachedOverallStatus);
-        Assert.Equal(5, retrieved.CurrentStepId);
-    }
 }

@@ -1,25 +1,25 @@
-using AdmissionProcessBL.Services.Interfaces;
+using AdmissionProcessBL.Interfaces;
 using AdmissionProcessDAL.Repositories.Interfaces;
 using AdmissionProcessModels.DTOs;
 using AdmissionProcessModels.Enums;
 using Microsoft.Extensions.Logging;
 
-namespace AdmissionProcessBL.Services;
+namespace AdmissionProcessBL;
 
-public class StatusService : IStatusService
+public class StatusLogic : IStatusLogic
 {
     private readonly IProgressRepository _progressRepository;
-    private readonly ILogger<StatusService> _logger;
+    private readonly ILogger<StatusLogic> _logger;
 
-    public StatusService(
+    public StatusLogic(
         IProgressRepository progressRepository,
-        ILogger<StatusService> logger)
+        ILogger<StatusLogic> logger)
     {
         _progressRepository = progressRepository;
         _logger = logger;
     }
 
-    public async Task<ServiceResult<StatusResponse>> GetUserStatusAsync(string userId)
+    public async Task<LogicResult<StatusResponse>> GetUserStatusAsync(string userId)
     {
         try
         {
@@ -27,13 +27,13 @@ public class StatusService : IStatusService
 
             if (userProgress == null)
             {
-                return ServiceResult<StatusResponse>.Success(new StatusResponse 
+                return LogicResult<StatusResponse>.Success(new StatusResponse 
                 { 
                     Status = UserStatus.InProgress 
                 });
             }
 
-            return ServiceResult<StatusResponse>.Success(new StatusResponse 
+            return LogicResult<StatusResponse>.Success(new StatusResponse 
             { 
                 Status = userProgress.CachedOverallStatus 
             });
@@ -41,7 +41,7 @@ public class StatusService : IStatusService
         catch (Exception ex)
         {
             _logger.LogError(ex, $"GetUserStatusAsync failed for user {userId}");
-            return ServiceResult<StatusResponse>.Failure("An error occurred while retrieving the status");
+            return LogicResult<StatusResponse>.Failure("An error occurred while retrieving the status");
         }
     }
 }

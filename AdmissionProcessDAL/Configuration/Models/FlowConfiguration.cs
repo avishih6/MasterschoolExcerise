@@ -16,8 +16,8 @@ public class StepConfiguration
 public class TaskConfiguration
 {
     public int NodeId { get; set; }
-    public VisibilityCondition? VisibilityCondition { get; set; }
-    public PassCondition? PassCondition { get; set; }
+    public Condition? VisibilityCondition { get; set; }
+    public Condition? PassCondition { get; set; }
     public List<string>? PayloadIdentifiers { get; set; }
     public int? RequiresPreviousTaskFailedId { get; set; }
     public List<DerivedFactMapping>? DerivedFactsToStore { get; set; }

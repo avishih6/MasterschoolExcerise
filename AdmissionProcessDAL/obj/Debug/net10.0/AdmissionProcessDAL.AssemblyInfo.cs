@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AdmissionProcessDAL")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c48f8f7d4e9ed5a73285f6c3168e7fb4fe2742c2")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5f0323e0f5c4278405f8a595ff3aa9c8a73afabb")]
 [assembly: System.Reflection.AssemblyProductAttribute("AdmissionProcessDAL")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AdmissionProcessDAL")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

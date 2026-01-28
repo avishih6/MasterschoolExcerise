@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>AdmissionProcessDAL</id>
+    <version>1.0.0</version>
+    <authors>Masterschool</authors>
+    <description>Data Access Layer for Admission Process - Mock implementations</description>
+    <repository type="git" commit="3a00ff7b834279fd535fafd4e6f3dda97a92107a" />
+    <dependencies>
+      <group targetFramework="net10.0">
+        <dependency id="Microsoft.Extensions.Configuration.Json" version="8.0.0" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="8.0.0" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+    <contentFiles>
+      <files include="any/net10.0/Configuration/flow-config.json" buildAction="Content" />
+    </contentFiles>
+  </metadata>
+  <files>
+    <file src="/Users/avishayhadar/Repos/AdmissionProcessDAL/bin/Debug/net10.0/AdmissionProcessDAL.dll" target="lib/net10.0/AdmissionProcessDAL.dll" />
+    <file src="/Users/avishayhadar/Repos/AdmissionProcessDAL/Configuration/flow-config.json" target="content/Configuration/flow-config.json" />
+    <file src="/Users/avishayhadar/Repos/AdmissionProcessDAL/Configuration/flow-config.json" target="contentFiles/any/net10.0/Configuration/flow-config.json" />
+  </files>
+</package>

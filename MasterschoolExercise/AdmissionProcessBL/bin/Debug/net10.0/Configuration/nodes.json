@@ -1,0 +1,19 @@
+{
+  "nodes": [
+    { "id": 1, "name": "Personal Details Form", "order": 1 },
+    { "id": 10, "name": "Complete personal details", "order": 1 },
+    { "id": 2, "name": "IQ Test", "order": 2 },
+    { "id": 20, "name": "Take IQ test", "order": 1 },
+    { "id": 21, "name": "Take second chance IQ test", "order": 2 },
+    { "id": 3, "name": "Interview", "order": 3 },
+    { "id": 30, "name": "Schedule interview", "order": 1 },
+    { "id": 31, "name": "Perform interview", "order": 2 },
+    { "id": 4, "name": "Sign Contract", "order": 4 },
+    { "id": 40, "name": "Upload identification document", "order": 1 },
+    { "id": 41, "name": "Sign employment contract", "order": 2 },
+    { "id": 5, "name": "Payment", "order": 5 },
+    { "id": 50, "name": "Complete payment", "order": 1 },
+    { "id": 6, "name": "Join Slack", "order": 6 },
+    { "id": 60, "name": "Join Slack workspace", "order": 1 }
+  ]
+}

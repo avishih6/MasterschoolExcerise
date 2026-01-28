@@ -1,8 +1,0 @@
-namespace AdmissionProcessApi.DTOs;
-
-public class CompleteStepRequest
-{
-    public string UserId { get; set; } = string.Empty;
-    public string StepName { get; set; } = string.Empty;
-    public Dictionary<string, object> StepPayload { get; set; } = new();
-}

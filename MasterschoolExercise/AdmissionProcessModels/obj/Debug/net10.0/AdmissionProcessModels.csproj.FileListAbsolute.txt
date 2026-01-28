@@ -1,0 +1,12 @@
+/Users/avishayhadar/Repos/AdmissionProcessModels/bin/Debug/net10.0/AdmissionProcessModels.deps.json
+/Users/avishayhadar/Repos/AdmissionProcessModels/bin/Debug/net10.0/AdmissionProcessModels.dll
+/Users/avishayhadar/Repos/AdmissionProcessModels/bin/Debug/net10.0/AdmissionProcessModels.pdb
+/Users/avishayhadar/Repos/AdmissionProcessModels/obj/Debug/net10.0/AdmissionProcessModels.GeneratedMSBuildEditorConfig.editorconfig
+/Users/avishayhadar/Repos/AdmissionProcessModels/obj/Debug/net10.0/AdmissionProcessModels.AssemblyInfoInputs.cache
+/Users/avishayhadar/Repos/AdmissionProcessModels/obj/Debug/net10.0/AdmissionProcessModels.AssemblyInfo.cs
+/Users/avishayhadar/Repos/AdmissionProcessModels/obj/Debug/net10.0/AdmissionProcessModels.csproj.CoreCompileInputs.cache
+/Users/avishayhadar/Repos/AdmissionProcessModels/obj/Debug/net10.0/AdmissionProcessModels.sourcelink.json
+/Users/avishayhadar/Repos/AdmissionProcessModels/obj/Debug/net10.0/AdmissionProcessModels.dll
+/Users/avishayhadar/Repos/AdmissionProcessModels/obj/Debug/net10.0/refint/AdmissionProcessModels.dll
+/Users/avishayhadar/Repos/AdmissionProcessModels/obj/Debug/net10.0/AdmissionProcessModels.pdb
+/Users/avishayhadar/Repos/AdmissionProcessModels/obj/Debug/net10.0/ref/AdmissionProcessModels.dll

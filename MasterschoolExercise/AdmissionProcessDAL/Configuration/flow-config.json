@@ -1,0 +1,79 @@
+{
+  "_comment": "Flow configuration for the admission process. FUTURE: Add 'overrides' array for country/university-specific customizations (e.g., skip IQ test for University X, add extra document step for Country Y)",
+  "steps": [
+    {
+      "nodeId": 1,
+      "tasks": [
+        {
+          "nodeId": 10,
+          "payloadIdentifiers": ["first_name", "last_name", "email", "timestamp"]
+        }
+      ]
+    },
+    {
+      "nodeId": 2,
+      "tasks": [
+        {
+          "nodeId": 20,
+          "passCondition": { "type": "score_threshold", "field": "score", "threshold": 75 },
+          "payloadIdentifiers": ["test_id", "score", "timestamp"],
+          "derivedFactsToStore": [{ "sourceField": "score", "targetFactName": "iq_score" }]
+        },
+        {
+          "nodeId": 21,
+          "_comment": "Second chance IQ test - only visible to users who scored 60-75",
+          "visibilityCondition": { "type": "score_range", "field": "iq_score", "min": 60, "max": 75 },
+          "passCondition": { "type": "score_threshold", "field": "score", "threshold": 75 },
+          "payloadIdentifiers": ["score", "timestamp"],
+          "requiresPreviousTaskFailedId": 20,
+          "derivedFactsToStore": [{ "sourceField": "score", "targetFactName": "iq_score" }]
+        }
+      ]
+    },
+    {
+      "nodeId": 3,
+      "tasks": [
+        {
+          "nodeId": 30,
+          "payloadIdentifiers": ["interview_date"]
+        },
+        {
+          "nodeId": 31,
+          "passCondition": { "type": "decision_equals", "field": "decision", "expectedValue": "passed_interview" },
+          "payloadIdentifiers": ["interview_date", "interviewer_id", "decision"]
+        }
+      ]
+    },
+    {
+      "nodeId": 4,
+      "tasks": [
+        {
+          "nodeId": 40,
+          "payloadIdentifiers": ["passport_number", "timestamp"]
+        },
+        {
+          "nodeId": 41,
+          "payloadIdentifiers": ["timestamp"]
+        }
+      ]
+    },
+    {
+      "nodeId": 5,
+      "tasks": [
+        {
+          "nodeId": 50,
+          "payloadIdentifiers": ["payment_id", "timestamp"]
+        }
+      ]
+    },
+    {
+      "nodeId": 6,
+      "tasks": [
+        {
+          "nodeId": 60,
+          "payloadIdentifiers": ["email", "timestamp"]
+        }
+      ]
+    }
+  ]
+}

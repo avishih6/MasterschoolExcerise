@@ -10,7 +10,7 @@
     { "id": 31, "name": "Perform interview", "order": 2 },
     { "id": 4, "name": "Sign Contract", "order": 4 },
     { "id": 40, "name": "Upload identification document", "order": 1 },
-    { "id": 41, "name": "Sign contract", "order": 2 },
+    { "id": 41, "name": "Sign employment contract", "order": 2 },
     { "id": 5, "name": "Payment", "order": 5 },
     { "id": 50, "name": "Complete payment", "order": 1 },
     { "id": 6, "name": "Join Slack", "order": 6 },

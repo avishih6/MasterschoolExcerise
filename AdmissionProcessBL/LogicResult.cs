@@ -18,7 +18,7 @@ public class LogicResult<T>
         };
     }
 
-    public static LogicResult<T> Failure(string errorMessage, int httpStatusCode = 400)
+    public static LogicResult<T> Failure(string errorMessage, int httpStatusCode = 500)
     {
         return new LogicResult<T>
         {
@@ -53,7 +53,7 @@ public class LogicResult
         return new LogicResult { IsSuccess = true };
     }
 
-    public static LogicResult Failure(string errorMessage, int httpStatusCode = 400)
+    public static LogicResult Failure(string errorMessage, int httpStatusCode = 500)
     {
         return new LogicResult
         {

@@ -69,7 +69,12 @@ public class Condition
 
     private bool EvaluateEquals(object? value)
     {
-        return value?.ToString()?.Equals(ExpectedValue, StringComparison.OrdinalIgnoreCase) ?? false;
+        var stringValue = value switch
+        {
+            System.Text.Json.JsonElement je => je.ValueKind == System.Text.Json.JsonValueKind.String ? je.GetString() : je.ToString(),
+            _ => value?.ToString()
+        };
+        return stringValue?.Equals(ExpectedValue, StringComparison.OrdinalIgnoreCase) ?? false;
     }
 
     private bool EvaluateDerivedFactEquals(UserProgress progress)
@@ -90,6 +95,8 @@ public class Condition
             float f => f,
             decimal dec => (double)dec,
             string s when double.TryParse(s, out var result) => result,
+            System.Text.Json.JsonElement je when je.ValueKind == System.Text.Json.JsonValueKind.Number => je.GetDouble(),
+            System.Text.Json.JsonElement je when je.ValueKind == System.Text.Json.JsonValueKind.String && double.TryParse(je.GetString(), out var r) => r,
             _ => null
         };
     }

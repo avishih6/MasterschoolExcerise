@@ -32,7 +32,7 @@ public class FlowController : ControllerBase
         if (!result.IsSuccess)
         {
             _logger.LogError($"GetEntireFlowForUserAsync failed for user {userId}: {result.ErrorMessage}");
-            return BadRequest(new ErrorResponse { Error = result.ErrorMessage ?? "Failed to get flow" });
+            return StatusCode(result.HttpStatusCode ?? 500, new ErrorResponse { Error = result.ErrorMessage ?? "Failed to get flow" });
         }
         
         return Ok(result.Data);
@@ -47,7 +47,7 @@ public class FlowController : ControllerBase
         if (!result.IsSuccess)
         {
             _logger.LogError($"GetCurrentStepAndTaskForUserAsync failed for user {userId}: {result.ErrorMessage}");
-            return BadRequest(new ErrorResponse { Error = result.ErrorMessage ?? "Failed to get current step" });
+            return StatusCode(result.HttpStatusCode ?? 500, new ErrorResponse { Error = result.ErrorMessage ?? "Failed to get current step" });
         }
         
         return Ok(result.Data);
@@ -65,11 +65,7 @@ public class FlowController : ControllerBase
         if (!result.IsSuccess)
         {
             _logger.LogError($"CompleteStepAsync failed for user {request.UserId}: {result.ErrorMessage}");
-            
-            if (result.HttpStatusCode == 404)
-                return NotFound(new ErrorResponse { Error = result.ErrorMessage ?? "Step not found" });
-            
-            return BadRequest(new ErrorResponse { Error = result.ErrorMessage ?? "Failed to complete step" });
+            return StatusCode(result.HttpStatusCode ?? 500, new ErrorResponse { Error = result.ErrorMessage ?? "Failed to complete step" });
         }
         
         return NoContent();

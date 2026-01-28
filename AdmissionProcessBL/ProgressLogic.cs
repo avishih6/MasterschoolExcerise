@@ -156,9 +156,25 @@ public class ProgressLogic : IProgressLogic
         {
             if (payload.TryGetValue(mapping.SourceField, out var value))
             {
-                progress.DerivedFacts[mapping.TargetFactName] = value;
+                progress.DerivedFacts[mapping.TargetFactName] = ConvertJsonElement(value);
             }
         }
+    }
+
+    private static object ConvertJsonElement(object value)
+    {
+        if (value is System.Text.Json.JsonElement je)
+        {
+            return je.ValueKind switch
+            {
+                System.Text.Json.JsonValueKind.Number => je.TryGetInt64(out var l) ? l : je.GetDouble(),
+                System.Text.Json.JsonValueKind.String => je.GetString() ?? string.Empty,
+                System.Text.Json.JsonValueKind.True => true,
+                System.Text.Json.JsonValueKind.False => false,
+                _ => je.ToString()
+            };
+        }
+        return value;
     }
 
     private void UpdateNodeStatus(UserProgress progress, int nodeId, bool passed)
@@ -234,6 +250,17 @@ public class ProgressLogic : IProgressLogic
 
     private CurrentProgressResponse? CheckStepWithTasks(FlowNode stepNode, List<FlowNode> visibleTasks, UserProgress userProgress)
     {
+        // If no visible tasks, check if step itself is complete
+        if (visibleTasks.Count == 0)
+        {
+            var stepStatus = userProgress.NodeStatuses.GetValueOrDefault(stepNode.Id);
+            if (stepStatus?.Status != ProgressStatus.Accepted)
+            {
+                return new CurrentProgressResponse { CurrentStep = stepNode.Name, CurrentTask = null };
+            }
+            return null;
+        }
+
         foreach (var task in visibleTasks.OrderBy(t => t.Order))
         {
             var taskStatus = userProgress.NodeStatuses.GetValueOrDefault(task.Id);
@@ -306,7 +333,29 @@ public class ProgressLogic : IProgressLogic
     private async Task<(bool IsRejected, bool IsComplete)> CheckStepStatusAsync(FlowNode stepNode, UserProgress progress)
     {
         var tasks = await _flowRepository.GetChildNodesAsync(stepNode.Id).ConfigureAwait(false);
+        
+        // For steps without tasks, check the step status directly
+        if (tasks.Count == 0)
+        {
+            var stepStatus = progress.NodeStatuses.GetValueOrDefault(stepNode.Id);
+            if (stepStatus?.Status == ProgressStatus.Rejected)
+                return (true, false);
+            if (stepStatus?.Status != ProgressStatus.Accepted)
+                return (false, false);
+            return (false, true);
+        }
+
+        // For steps with tasks, check all visible tasks
         var visibleTasks = tasks.Where(t => t.IsVisibleForUser(progress)).ToList();
+        
+        // If no tasks are visible, check the step status directly (edge case)
+        if (visibleTasks.Count == 0)
+        {
+            var stepStatus = progress.NodeStatuses.GetValueOrDefault(stepNode.Id);
+            if (stepStatus?.Status == ProgressStatus.Rejected)
+                return (true, false);
+            return (stepStatus?.Status == ProgressStatus.Accepted, stepStatus?.Status == ProgressStatus.Accepted);
+        }
 
         foreach (var task in visibleTasks)
         {
@@ -316,15 +365,6 @@ public class ProgressLogic : IProgressLogic
                 return (true, false);
             
             if (status?.Status != ProgressStatus.Accepted)
-                return (false, false);
-        }
-
-        if (tasks.Count == 0)
-        {
-            var stepStatus = progress.NodeStatuses.GetValueOrDefault(stepNode.Id);
-            if (stepStatus?.Status == ProgressStatus.Rejected)
-                return (true, false);
-            if (stepStatus?.Status != ProgressStatus.Accepted)
                 return (false, false);
         }
 

@@ -8,6 +8,14 @@ using Newtonsoft.Json;
 
 namespace AdmissionProcessDAL.Repositories.Mock;
 
+/// <summary>
+/// Mock implementation that loads flow configuration from JSON files at startup.
+/// 
+/// FUTURE: Hot-reload options for runtime configuration updates:
+/// 1. File watcher using IOptionsMonitor - auto-reload when JSON files change
+/// 2. Admin API endpoint (POST /admin/reload-config) - manual trigger to reload
+/// 3. Move configuration to database - changes available immediately via DB queries
+/// </summary>
 public class MockFlowRepository : IFlowRepository
 {
     private readonly ConcurrentDictionary<int, FlowNode> _nodesById = new();
@@ -235,7 +243,7 @@ public class MockFlowRepository : IFlowRepository
             new() { Id = 31, Name = "Perform interview", Order = 2 },
             new() { Id = 4, Name = "Sign Contract", Order = 4 },
             new() { Id = 40, Name = "Upload identification document", Order = 1 },
-            new() { Id = 41, Name = "Sign contract", Order = 2 },
+            new() { Id = 41, Name = "Sign employment contract", Order = 2 },
             new() { Id = 5, Name = "Payment", Order = 5 },
             new() { Id = 50, Name = "Complete payment", Order = 1 },
             new() { Id = 6, Name = "Join Slack", Order = 6 },

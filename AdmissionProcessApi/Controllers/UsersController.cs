@@ -43,7 +43,7 @@ public class UsersController : ControllerBase
             }
             
             _logger.LogError($"CreateUserAsync failed: {result.ErrorMessage}");
-            return BadRequest(new ErrorResponse { Error = result.ErrorMessage ?? "Failed to create user" });
+            return StatusCode(result.HttpStatusCode ?? 500, new ErrorResponse { Error = result.ErrorMessage ?? "Failed to create user" });
         }
         
         return Ok(result.Data);
@@ -58,7 +58,7 @@ public class UsersController : ControllerBase
         if (!result.IsSuccess)
         {
             _logger.LogError($"GetUserStatusAsync failed for user {userId}: {result.ErrorMessage}");
-            return BadRequest(new ErrorResponse { Error = result.ErrorMessage ?? "Failed to get status" });
+            return StatusCode(result.HttpStatusCode ?? 500, new ErrorResponse { Error = result.ErrorMessage ?? "Failed to get status" });
         }
         
         return Ok(result.Data);

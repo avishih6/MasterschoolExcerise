@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AdmissionProcessBL.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ec593ebd8bb82deab1a1c7c20fafa48881d4c7fb")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+40fd5a15505668ef9c03b2591643d96c60e1b282")]
 [assembly: System.Reflection.AssemblyProductAttribute("AdmissionProcessBL.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AdmissionProcessBL.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "nMCggKkiBNA=",
+  "dgSpecHash": "EU/cKA5G6Es=",
   "success": true,
-  "projectFilePath": "/Users/avishayhadar/Repos/AdmissionProcessBL/AdmissionProcessBL.csproj",
+  "projectFilePath": "/Users/avishayhadar/Repos/MasterschoolExercise/AdmissionProcessBL/AdmissionProcessBL.csproj",
   "expectedPackageFiles": [
     "/Users/avishayhadar/.nuget/packages/microsoft.extensions.dependencyinjection.abstractions/8.0.0/microsoft.extensions.dependencyinjection.abstractions.8.0.0.nupkg.sha512",
     "/Users/avishayhadar/.nuget/packages/microsoft.extensions.logging.abstractions/8.0.0/microsoft.extensions.logging.abstractions.8.0.0.nupkg.sha512",

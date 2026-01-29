@@ -13,11 +13,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/avishayhadar/Repos/AdmissionProcessModels/AdmissionProcessModels.csproj",
+      "projectUniqueName": "/Users/avishayhadar/Repos/MasterschoolExercise/AdmissionProcessModels/AdmissionProcessModels.csproj",
       "projectName": "AdmissionProcessModels",
-      "projectPath": "/Users/avishayhadar/Repos/AdmissionProcessModels/AdmissionProcessModels.csproj",
+      "projectPath": "/Users/avishayhadar/Repos/MasterschoolExercise/AdmissionProcessModels/AdmissionProcessModels.csproj",
       "packagesPath": "/Users/avishayhadar/.nuget/packages/",
-      "outputPath": "/Users/avishayhadar/Repos/AdmissionProcessModels/obj/",
+      "outputPath": "/Users/avishayhadar/Repos/MasterschoolExercise/AdmissionProcessModels/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/Users/avishayhadar/.nuget/NuGet/NuGet.Config"

@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "K7G3sxTQmGc=",
+  "dgSpecHash": "ypJ9ox5Tu8g=",
   "success": true,
-  "projectFilePath": "/Users/avishayhadar/Repos/AdmissionProcessDAL.Tests/AdmissionProcessDAL.Tests.csproj",
+  "projectFilePath": "/Users/avishayhadar/Repos/MasterschoolExercise/AdmissionProcessDAL.Tests/AdmissionProcessDAL.Tests.csproj",
   "expectedPackageFiles": [
     "/Users/avishayhadar/.nuget/packages/castle.core/5.1.1/castle.core.5.1.1.nupkg.sha512",
     "/Users/avishayhadar/.nuget/packages/microsoft.codecoverage/17.8.0/microsoft.codecoverage.17.8.0.nupkg.sha512",

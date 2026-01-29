@@ -237,11 +237,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/avishayhadar/Repos/AdmissionProcessBL/AdmissionProcessBL.csproj",
+      "projectUniqueName": "/Users/avishayhadar/Repos/MasterschoolExercise/AdmissionProcessBL/AdmissionProcessBL.csproj",
       "projectName": "AdmissionProcessBL",
-      "projectPath": "/Users/avishayhadar/Repos/AdmissionProcessBL/AdmissionProcessBL.csproj",
+      "projectPath": "/Users/avishayhadar/Repos/MasterschoolExercise/AdmissionProcessBL/AdmissionProcessBL.csproj",
       "packagesPath": "/Users/avishayhadar/.nuget/packages/",
-      "outputPath": "/Users/avishayhadar/Repos/AdmissionProcessBL/obj/",
+      "outputPath": "/Users/avishayhadar/Repos/MasterschoolExercise/AdmissionProcessBL/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/Users/avishayhadar/.nuget/NuGet/NuGet.Config"
@@ -257,11 +257,11 @@
         "net10.0": {
           "targetAlias": "net10.0",
           "projectReferences": {
-            "/Users/avishayhadar/Repos/AdmissionProcessDAL/AdmissionProcessDAL.csproj": {
-              "projectPath": "/Users/avishayhadar/Repos/AdmissionProcessDAL/AdmissionProcessDAL.csproj"
+            "/Users/avishayhadar/Repos/MasterschoolExercise/AdmissionProcessDAL/AdmissionProcessDAL.csproj": {
+              "projectPath": "/Users/avishayhadar/Repos/MasterschoolExercise/AdmissionProcessDAL/AdmissionProcessDAL.csproj"
             },
-            "/Users/avishayhadar/Repos/AdmissionProcessModels/AdmissionProcessModels.csproj": {
-              "projectPath": "/Users/avishayhadar/Repos/AdmissionProcessModels/AdmissionProcessModels.csproj"
+            "/Users/avishayhadar/Repos/MasterschoolExercise/AdmissionProcessModels/AdmissionProcessModels.csproj": {
+              "projectPath": "/Users/avishayhadar/Repos/MasterschoolExercise/AdmissionProcessModels/AdmissionProcessModels.csproj"
             }
           }
         }

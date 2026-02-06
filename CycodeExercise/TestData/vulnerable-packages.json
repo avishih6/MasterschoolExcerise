@@ -1,0 +1,16 @@
+{
+  "description": "Test case with vulnerable packages (deep-override and mustache)",
+  "originalContent": {
+    "name": "My Application",
+    "version": "1.0.0",
+    "dependencies": {
+      "deep-override": "1.0.1",
+      "mustache": "2.1.1"
+    }
+  },
+  "request": {
+    "ecosystem": "npm",
+    "fileContent": "ewogICJuYW1lIjogIk15IEFwcGxpY2F0aW9uIiwKICAidmVyc2lvbiI6ICIxLjAuMCIsCiAgImRlcGVuZGVuY2llcyI6IHsKICAgICJkZWVwLW92ZXJyaWRlIjogIjEuMC4xIiwKICAgICJtdXN0YWNoZSI6ICIyLjEuMSIKICB9Cn0K"
+  },
+  "expectedResult": "Should return vulnerabilities for both packages"
+}

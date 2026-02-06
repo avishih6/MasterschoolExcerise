@@ -1,0 +1,6 @@
+@CycodeExercise_HostAddress = http://localhost:5095
+
+GET {{CycodeExercise_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,90 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch API (Itamar)",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/dist/main.js",
+            "args": ["Itamar"],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "sourceMaps": true,
+            "outFiles": ["${workspaceFolder}/dist/**/*.js"]
+        },
+        {
+            "name": "Launch API (Custom City)",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/dist/main.js",
+            "args": ["${input:cityName}"],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "sourceMaps": true,
+            "outFiles": ["${workspaceFolder}/dist/**/*.js"]
+        },
+        {
+            "name": "Launch API (Pick City)",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/dist/main.js",
+            "args": ["${input:pickCity}"],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "sourceMaps": true,
+            "outFiles": ["${workspaceFolder}/dist/**/*.js"]
+        },
+        {
+            "name": "Launch API (Multiple Cities)",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/dist/main.js",
+            "args": ["Itamar", "Ashdod", "Dimona"],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "sourceMaps": true,
+            "outFiles": ["${workspaceFolder}/dist/**/*.js"]
+        },
+        {
+            "name": "Launch Consumer",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/dist/consumer.js",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "sourceMaps": true,
+            "outFiles": ["${workspaceFolder}/dist/**/*.js"]
+        }
+    ],
+    "inputs": [
+        {
+            "id": "cityName",
+            "type": "promptString",
+            "description": "Enter city name (e.g., Itamar, Tel Aviv, Ashdod)",
+            "default": "Itamar"
+        },
+        {
+            "id": "pickCity",
+            "type": "pickString",
+            "description": "Select a city to process",
+            "options": [
+                "Itamar",
+                "Ashdod",
+                "Tel Aviv",
+                "Jerusalem",
+                "Haifa",
+                "Dimona",
+                "Beer Sheva",
+                "Eilat",
+                "Netanya",
+                "Herzliya",
+                "Ramat Gan",
+                "Holon",
+                "Petah Tikva",
+                "Rishon LeZion",
+                "Rehovot"
+            ],
+            "default": "Itamar"
+        }
+    ]
+}

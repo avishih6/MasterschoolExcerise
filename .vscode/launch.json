@@ -19,6 +19,75 @@
                 "ASPNETCORE_ENVIRONMENT": "Development",
                 "ASPNETCORE_URLS": "http://localhost:8080"
             }
+        },
+        {
+            "name": "Draftt CLI (Itamar)",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/DrafttExercise/dist/main.js",
+            "args": ["Itamar"],
+            "cwd": "${workspaceFolder}/DrafttExercise",
+            "console": "integratedTerminal",
+            "sourceMaps": true,
+            "outFiles": ["${workspaceFolder}/DrafttExercise/dist/**/*.js"]
+        },
+        {
+            "name": "Draftt CLI (Custom City)",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/DrafttExercise/dist/main.js",
+            "args": ["${input:drafttCity}"],
+            "cwd": "${workspaceFolder}/DrafttExercise",
+            "console": "integratedTerminal",
+            "sourceMaps": true,
+            "outFiles": ["${workspaceFolder}/DrafttExercise/dist/**/*.js"]
+        },
+        {
+            "name": "Draftt CLI (Pick City)",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/DrafttExercise/dist/main.js",
+            "args": ["${input:drafttPickCity}"],
+            "cwd": "${workspaceFolder}/DrafttExercise",
+            "console": "integratedTerminal",
+            "sourceMaps": true,
+            "outFiles": ["${workspaceFolder}/DrafttExercise/dist/**/*.js"]
+        },
+        {
+            "name": "Draftt Consumer",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/DrafttExercise/dist/consumer.js",
+            "cwd": "${workspaceFolder}/DrafttExercise",
+            "console": "integratedTerminal",
+            "sourceMaps": true,
+            "outFiles": ["${workspaceFolder}/DrafttExercise/dist/**/*.js"]
+        }
+    ],
+    "inputs": [
+        {
+            "id": "drafttCity",
+            "type": "promptString",
+            "description": "Enter city name (e.g., Itamar, Tel Aviv, Ashdod)",
+            "default": "Itamar"
+        },
+        {
+            "id": "drafttPickCity",
+            "type": "pickString",
+            "description": "Select a city to process",
+            "options": [
+                "Itamar",
+                "Ashdod",
+                "Tel Aviv",
+                "Jerusalem",
+                "Haifa",
+                "Dimona",
+                "Beer Sheva",
+                "Eilat",
+                "Netanya",
+                "Herzliya"
+            ],
+            "default": "Itamar"
         }
     ]
 }

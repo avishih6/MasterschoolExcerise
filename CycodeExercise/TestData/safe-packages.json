@@ -1,0 +1,15 @@
+{
+  "description": "Test case with no vulnerable packages (underscore)",
+  "originalContent": {
+    "name": "My Application",
+    "version": "1.0.0",
+    "dependencies": {
+      "underscore": "1.12.2"
+    }
+  },
+  "request": {
+    "ecosystem": "npm",
+    "fileContent": "ewogICJuYW1lIjogIk15IEFwcGxpY2F0aW9uIiwKICAidmVyc2lvbiI6ICIxLjAuMCIsCiAgImRlcGVuZGVuY2llcyI6IHsKICAgICJ1bmRlcnNjb3JlIjogIjEuMTIuMiIKICB9Cn0K"
+  },
+  "expectedResult": "Should return empty vulnerablePackages array"
+}
